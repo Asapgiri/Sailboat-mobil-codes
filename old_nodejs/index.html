@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script>
+            if (location.protocol !== 'https:') {
+                location.replace(`https:${location.href.substring(location.protocol.length)}`);
+            }
+        </script>
+        <link rel="stylesheet" type="text/css" href="style.css">
+    </head>
+    <body>
+        <div>
+            <p>Device: <span id="device"><button onclick="connect()">Connect</button></span><button onclick="update_start()">Manual update</button><button onclick="update_stop()">Stop update</button></p>
+        </div>
+        <div>
+            <p>Ellapsed: <span id="ellapsed"></span>ms</p>
+        </div>
+        <div>
+            <p>Min: <span id="minms"></span>ms - Max: <span id="maxms"></span>ms - Now: <span id="ms"></span>ms</p>
+        </div>
+        <div>
+            <p>
+                Command: 
+                <input type="tex" id="command">
+                <button onclick="sendCommand()">Send</button>
+                <input type="radio" name="hexselect" id="hex" value="HEX">HEX
+                <input type="radio" name="hexselect" id="string" value="STRING">STRING
+            </p>
+        </div>
+        
+        <div>
+            <table>
+                <tr><th align="left" colspan="2">Speed</th></tr>
+                <tr><td>True:</td><td><span id="strue"></span></td></tr>
+                <tr><td>Speed:</td><td><span id="rpm"></span> [rpm]</td></tr>
+                <tr><td>ws:</td><td><span id="ws"></span> [km/h]</td></tr>
+                <tr></tr>
+                <tr><th align="left" colspan="2">Wane</th></tr>
+                <tr><td>Adc:</td><td><span id="adc"></span></td></tr>
+                <tr><td>Deg:</td><td><span id="deg"></span>&#176;</td></tr>
+                <tr></tr>
+                <tr><th align="left" colspan="2">MPU</th></tr>
+                <tr><td>Orientation:  </td><td><span id="mpu_orient"></span></td></tr>
+                <tr><td>Acceleration: </td><td><span id="mpu_acc"></span></td></tr>
+                <tr><td>Temp:</td><td><span id="mpu_temp">0</span>&#176;C</td></tr>
+                <tr><td>ResultantG:</td><td><span id="resultantG">0</span></td></tr>
+            </table>
+
+            <table>
+                <tr><th align="left" colspan="4">Speedmap</th></tr>
+                <tr><td>0:</td><td><input type="text" id="sm-limit-0" value="0" disabled></td><td><input type="text" id="sm-coeff-0"></td><td><button onclick="rm_sm_row(0)">X</button></td></tr>
+                <tr id="new_row"><td colspan="4"><button onclick="add_sm_row()">+</button></td></tr>
+                <tr><td colspan="4"><button id="write" onclick="sm_row_write()">Write</button></td></tr>
+            </table>
+        </div>
+
+        <div>
+            <p>Raw: <span id="output"></span></p>
+        </div>
+
+        <script src="sensors.js"></script>
+    </body>
+</html>
