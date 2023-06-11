@@ -44,3 +44,18 @@ npm run dev
 ```sh
 npm run build
 ```
+
+
+## Run previous example with speedmap configurator
+
+```sh
+cd old_nodejs
+npm install
+node .
+```
+
+Access on https://localhost
+
+
+
+
