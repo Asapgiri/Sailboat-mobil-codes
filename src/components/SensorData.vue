@@ -1,5 +1,9 @@
 <script setup lang="ts">
 import { BLEDevice, BLEConnect } from './HandleSensors'
+import { SensorsLogger } from './HandleSensors'
+import { format } from '../abstract/formatter'
+import { config } from '../config'
+
 </script>
 
 <script lang="ts">
@@ -9,19 +13,45 @@ export default defineComponent({
     methods: {
         connect() {
             BLEDevice.update.push(this.$forceUpdate)
-            BLEConnect()
+            BLEConnect(() => {
+                // should be reconnect etc.. so reset is not always the best option
+                SensorsLogger.reset()
+            })
         }
     }
 })
 </script>
 
 <template>
-    <div>
-        Connected to: <span>{{ BLEDevice.connected ? BLEDevice.name : 'not connectrd' }}</span>
-        <button v-if="!BLEDevice.connected" @click="connect" ref="connectButton">Connect</button>
-        <span v-if="BLEDevice.connected" > ({{ BLEDevice.ms }}ms)</span>
+    <div class="row">
+        <div class="col-6">
+            Stored log count: {{ SensorsLogger.logs.length }}
+        </div>
+        <div class="col-6">
+            Ellapsed: <span v-bind:class="SensorsLogger.is_running ? SensorsLogger.is_pauused ? 'text-danger' : 'text-success' : ''">{{ SensorsLogger.time.ellapsed }}</span>
+        </div>
     </div>
-    <div v-if="BLEDevice.connected">
+    <div v-if="!BLEDevice.connected">
+        <button class="btn btn-primary py-3 w-100 mb-2" :onclick="connect">Connect</button>
+    </div>
+    <div v-else>
+        <div class="display-4">
+            {{ BLEDevice.name }} ({{ format.ms_show(BLEDevice.ms) }}ms)
+        </div>
+
+        <button v-if="!SensorsLogger.is_running" class="btn btn-success py-3 w-100 mb-2" :onclick="SensorsLogger.start">
+            Start
+        </button>
+        <button v-if="SensorsLogger.is_running && !SensorsLogger.is_pauused" class="btn btn-secondary py-3 w-50 mb-2" :onclick="SensorsLogger.pause">
+            Pause
+        </button>
+        <button v-if="SensorsLogger.is_running && SensorsLogger.is_pauused" class="btn btn-success py-3 w-50 mb-2" :onclick="SensorsLogger.continue">
+            Continue
+        </button>
+        <button v-if="SensorsLogger.is_running" class="btn btn-warning py-3 w-50 mb-2" :onclick="SensorsLogger.stop">
+            Stop
+        </button>
+
 <!--    <div>
             <p>Ellapsed: <span id="ellapsed"></span>ms</p>
         </div>
@@ -38,25 +68,55 @@ export default defineComponent({
             </p>
         </div>    -->
         
-        <div>
+
+        <div v-if="config.extendedView" class="row">
+            <div class="col-3">
+                <b>Sensors:</b>
+            </div>
+            <div class="col-9 display-4">
+                <span id="strue">
+                    [
+                        {{ BLEDevice.sensors.strue.s0 ? '__' : '---' }}
+                        {{ BLEDevice.sensors.strue.s1 ? '__' : '---' }}
+                        {{ BLEDevice.sensors.strue.s2 ? '__' : '---' }}
+                    ]
+                </span>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-2">
+                <b>Speed:</b><br/>
+                [km/h]
+            </div>
+            <div class="col-3 display-4">
+                <span id="rpm">{{ format.speed(BLEDevice.sensors.ws) }}</span>
+            </div>
+            <div class="col-2 text-center">
+                <b>Dir:</b>
+            </div>
+            <div class="col-3 display-4">
+                <span id="deg">{{ format.speed(BLEDevice.sensors.deg) }}</span>&#176;
+            </div>
+        </div>
+        <div v-if="config.extendedView" class="row">
+            <div class="col-2">
+                [rpm]
+            </div>
+            <div class="col-4 display-4">
+                <span id="ws">{{ format.speed(BLEDevice.sensors.rpm) }}</span>
+            </div>
+            <div class="col-2">
+                <b>Adc:</b>
+            </div>
+            <div class="col-3 display-4">
+                <span id="adc">{{ format.speed(BLEDevice.sensors.adc) }}</span>
+            </div>
+        </div>
+
+        <!--<div>
             <table>
-                <tr>
-                    <th align="left" colspan="2">Speed</th>
-                    <th align="left" colspan="2">Wane</th>
-                </tr>
-                <tr>
-                    <td>Sensors:</td><td><span id="strue">{ {{ BLEDevice.sensors.strue.s0 ? '_' : '-' }} {{ BLEDevice.sensors.strue.s1 ? '_' : '-' }} {{ BLEDevice.sensors.strue.s2 ? '_' : '-' }} }</span></td>
-                    <td></td><td></td>
-                </tr>
-                <tr>
-                    <td>Speed:</td><td><span id="rpm">{{ BLEDevice.sensors.rpm.toFixed(2) }}</span> [rpm]</td>
-                    <td>Adc:</td><td><span id="adc">{{ BLEDevice.sensors.adc.toFixed(0) }}</span></td>
-                </tr>
-                <tr>
-                    <td>ws:</td><td><span id="ws">{{ BLEDevice.sensors.ws.toFixed(2) }}</span> [km/h]</td>
-                    <td>Deg:</td><td><span id="deg">{{ BLEDevice.sensors.deg.toFixed(2) }}</span>&#176;</td>
-                </tr>
-        <!--    <tr><th align="left" colspan="2">Wane</th></tr>
+                <tr><th align="left" colspan="2">Wane</th></tr>
                 <tr><td>Adc:</td><td><span id="adc">{{ BLEDevice.sensors.adc }}</span></td></tr>
                 <tr><td>Deg:</td><td><span id="deg">{{ BLEDevice.sensors.deg }}</span>&#176;</td></tr>
                 <tr></tr>
@@ -71,9 +131,9 @@ export default defineComponent({
                 <tr><th align="left" colspan="4">Speedmap</th></tr>
                 <tr><td>0:</td><td><input type="text" id="sm-limit-0" value="0" disabled></td><td><input type="text" id="sm-coeff-0"></td><td><button onclick="rm_sm_row(0)">X</button></td></tr>
                 <tr id="new_row"><td colspan="4"><button onclick="add_sm_row()">+</button></td></tr>
-                <tr><td colspan="4"><button id="write" onclick="sm_row_write()">Write</button></td></tr>    -->
+                <tr><td colspan="4"><button id="write" onclick="sm_row_write()">Write</button></td></tr>
             </table>
-        </div>
+        </div>    -->
   </div>
 </template>
 

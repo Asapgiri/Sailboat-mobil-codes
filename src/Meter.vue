@@ -1,7 +1,10 @@
 <script setup lang="ts">
-import GpsData from './components/GpsData.vue';
-import SensorData from './components/SensorData.vue'
-import WindClock  from './components/WindClock.vue'
+import { useFirebaseApp, useCurrentUser } from 'vuefire'
+
+import GpsData from "./components/GpsData.vue";
+import SensorData from "./components/SensorData.vue";
+import WindClock from "./components/WindClock.vue";
+
 </script>
 
 <script lang="ts">
@@ -9,10 +12,9 @@ import WindClock  from './components/WindClock.vue'
 </script>
 
 <template>
-    <SensorData/>
-    <WindClock/>
-    <GpsData/>
+    <SensorData />
+    <WindClock />
+    <GpsData />
 </template>
 
-<style scoped>
-</style>
+<style scoped></style>

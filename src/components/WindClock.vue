@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { BLEDevice, SensorsLogger } from './HandleSensors'
+import { format } from '../abstract/formatter'
 
 var orientation_initialized = false
 var orient_offset_y = 0
@@ -37,6 +38,10 @@ function changeCompass(e: any) {
     if (e_compass) e_compass.style.rotate  = `${-compass}deg`
 }
 
+function reset_orientation() {
+    orientation_initialized = false
+}
+
 function changeOrientation(e: any) {
     const e_orientation = document.getElementById('orientation')
     if (!e_orientation) return
@@ -54,7 +59,7 @@ function changeOrientation(e: any) {
     e_orientation.style.translate    = `${horizontal}px ${vertical}px`
     const e_orent = document.getElementById('orient')
     if (e_orent) {
-        e_orent.innerText = `x: ${orient.x.toFixed(2)}deg, y: ${orient.y.toFixed(2)}deg ... ${e.gamma}`
+        e_orent.innerText = `x: ${format.orient(orient.x)}deg, y: ${format.orient(orient.y)}deg ... tilt: ${format.orient(e.gamma)}`
     }
 }
 
@@ -94,10 +99,25 @@ BLEDevice.update.push(change)
         <div id="hider"></div>
     </div>
 
+    
+    <!--
+    <div class="row">
+        <div class="col-3">
+            <b>Orient:</b>
+        </div>
+        <div class="col-3">
+            x: {{ format.orient(orient.x) }}
+        </div>
+        <div class="col-3">
+            y: {{ format.orient(orient.y) }}
+        </div>
+    </div> -->
     <div>
-        Orient: x: {{ orient.x }}, y: {{ orient.y }}<br>
+        <!-- Orient: x: {{ format.orient(orient.x) }}, y: {{ format.orient(orient.y) }}<br> -->
         <span id="orient"></span>
-  </div>
+    </div>
+
+    <div><button class="btn btn-danger py-3 w-100 mb-2" :onclick="reset_orientation">Reset Orientation</button></div>
 </template>
 
 <style scoped>
@@ -135,7 +155,7 @@ input {
     height: 2000px;
     position: absolute;
     border-radius: 100%;
-    border: calc(1000px - 129px) solid var(--vt-c-black);
+    border: calc(1000px - 129px) solid var(--vt-c-white);
     z-index: -1;
 }
 

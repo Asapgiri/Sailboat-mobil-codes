@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { BLEDevice, type SpokyError, SensorsLogger } from './HandleSensors'
+import { format } from '../abstract/formatter'
 
 function updateLocation() {
     navigator.geolocation.getCurrentPosition((position) => {
@@ -8,11 +9,21 @@ function updateLocation() {
         const lon = document.getElementById('lon')
 
         if (lat && lon && timestamp) {
-            timestamp.innerText = position.timestamp.toFixed(0)
-            lat.innerText       = position.coords.latitude.toFixed(6)
-            lon.innerText       = position.coords.longitude.toFixed(6)
+            timestamp.innerText = format.ms_show(position.timestamp)
+            lat.innerText       = format.gps(position.coords.latitude)
+            lon.innerText       = format.gps(position.coords.longitude)
         }
-        SensorsLogger.log.gps = position
+        SensorsLogger.log.gps = {
+            accuracy:           position.coords.accuracy,
+            altitude:           position.coords.altitude,
+            altitudeAccuracy:   position.coords.altitudeAccuracy,
+            heading:            position.coords.heading,
+            latitude:           position.coords.latitude,
+            longitude:          position.coords.longitude,
+            speed:              position.coords.speed
+        }
+        SensorsLogger.log.timestamp = position.timestamp
+
     },
     (err) => {
         var newError: SpokyError = {
@@ -43,10 +54,25 @@ BLEDevice.update.push(updateLocation)
 </script>
 
 <template>
+    <div class="row">
+        <div class="col-6">
+            <b>Lat:</b>
+        </div>
+        <div class="col-6">
+            <b>Lon:</b>
+        </div>
+    </div>
+    <div class="row text-center">
+        <div class="col-6 display-4">
+            <span id="lat"></span>
+        </div>
+        <div class="col-6 display-4">
+            <span id="lon"></span>
+        </div>
+    </div>
+
     <div>
-        Timestamp:  <span id="timestamp"></span><br>
-        Lat:        <span id="lat"></span><br>
-        Lon:        <span id="lon"></span>
+        Timestamp:  <span id="timestamp"></span>
     </div>
 </template>
 

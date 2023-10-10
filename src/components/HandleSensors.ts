@@ -1,5 +1,8 @@
 //import 'web-bluetooth'
 
+import { repo } from '../abstract/repository'
+import { format } from '../abstract/formatter'
+
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /// Typedefs
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -34,7 +37,7 @@ type WSBLESensorsType = {
     }
 }
 
-type LogData = {
+export type LogData = {
     ble: WSBLESensorsType,
     phone: {
         compass: number,
@@ -43,14 +46,34 @@ type LogData = {
             y: number
         }
     },
-    gps: GeolocationPosition
+    gps: {
+        accuracy: number,
+        altitude: number | null,
+        altitudeAccuracy: number | null,
+        heading: number | null,
+        latitude: number,
+        longitude: number,
+        speed: number | null
+    },
+    timestamp: number
 }
 
 type BLELogger = {
-    logs: string,
-    log: LogData,
-    save: Function,
-    flush: Function
+    logs:       LogData[],
+    log:        LogData,
+    store:      Function,
+    start:      Function,
+    continue:   Function,
+    pause:      Function,
+    stop:       Function,
+    flush:      Function,
+    reset:      Function,
+    is_running: boolean,
+    is_pauused: boolean,
+    time: {
+        start: Date,
+        ellapsed: string
+    }
 }
 
 type WSBLEDeviceType = {
@@ -80,6 +103,7 @@ const CMD_MPU_CALIBRATE = 4
 const CMD_SET_SPEEDMAP = 5
 
 
+
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /// Variables
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -103,10 +127,136 @@ var initTime = new Date()
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
+/// Internals
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+function logger_store(): void {
+    SensorsLogger.logs.push(SensorsLogger.log)
+    SensorsLogger.log = {
+        ble: {
+            strue: {
+                s0: false,
+                s1: false,
+                s2: false
+            },
+            rpm: 0,
+            ws: 0,
+            adc: 0,
+            deg: 0,
+            mpu: {
+                temp: 0,
+                orient: {
+                    roll: 0,
+                    pitch: 0,
+                    yaw: 0
+                },
+                acc: {
+                    x: 0,
+                    y: 0,
+                    z: 0
+                }
+            }
+        },
+        phone: {
+            compass: 0,
+            orient: { x: 0, y: 0 }
+        }, gps: {
+            accuracy: 0,
+            altitude: 0,
+            altitudeAccuracy: 0,
+            heading: 0,
+            latitude: 0,
+            longitude: 0,
+            speed: 0
+        },
+        timestamp: 0
+    }
+
+    var ms = (new Date()) - SensorsLogger.time.start
+    SensorsLogger.time.ellapsed = format.timer(ms)
+}
+
+function logger_start(): void {
+    if (SensorsLogger.is_running) {
+        alert('Already running')
+        return
+    }
+
+    SensorsLogger.time.start = new Date()
+    SensorsLogger.is_running = true
+}
+
+function logger_stop(): void {
+    if (!SensorsLogger.is_running) {
+        alert('Not running')
+        return
+    }
+
+    SensorsLogger.is_running = false
+
+    // store data locally
+    repo.local.sensors.store([SensorsLogger.logs])
+    SensorsLogger.logs = []
+}
+
+function logger_pause(): void {
+    if (!SensorsLogger.is_running) {
+        alert('Not running')
+        return
+    }
+    if (SensorsLogger.is_pauused) {
+        alert('Already paused')
+        return
+    }
+
+    SensorsLogger.is_pauused = true
+}
+
+function logger_continue(): void {
+    if (!SensorsLogger.is_running) {
+        alert('Not running')
+        return
+    }
+    if (!SensorsLogger.is_pauused) {
+        alert('Not paused')
+        return
+    }
+
+    SensorsLogger.is_pauused = false
+}
+
+function logger_reset(): void {
+    SensorsLogger.is_running = false
+    SensorsLogger.is_pauused = false
+    SensorsLogger.log = { ble: { strue: { s0: false, s1: false, s2: false }, rpm: 0, ws: 0, adc: 0, deg: 0, mpu: { temp: 0, orient: { roll: 0, pitch: 0, yaw: 0 }, acc: { x: 0, y: 0, z: 0 } } }, phone: { compass: 0, orient: { x: 0, y: 0 } }, gps: { accuracy: 0, altitude: 0, altitudeAccuracy: 0, heading: 0, latitude: 0, longitude: 0, speed: 0 }, timestamp: 0 }
+    SensorsLogger.logs = []
+    SensorsLogger.time.ellapsed = '00:00:00'
+}
+
+function logger_flush(): void {
+    console.log('flush is called')
+
+
+    // TODO: Sand back logs to server...
+    if (!navigator.onLine) {
+        alert('Cannot upload: No Ethernet')
+        return
+    }
+
+    var savedlogs: LogData[][] = repo.local.sensors.load_all()
+
+    repo.db.sensors.store(savedlogs.reverse())
+    repo.db.sensors.store([SensorsLogger.logs])
+
+    repo.local.sensors.clean_all()
+}
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
 /// Publics
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-export var BLEDevice: WSBLEDeviceType = {
+export const BLEDevice: WSBLEDeviceType = {
     connected: false,
     name: '',
     deviceId: '',
@@ -142,39 +292,21 @@ export var BLEDevice: WSBLEDeviceType = {
 }
 
 export var SensorsLogger: BLELogger = {
-    logs: '',
-    log: { ble: { strue: { s0: false, s1: false, s2: false }, rpm: 0, ws: 0, adc: 0, deg: 0, mpu: { temp: 0, orient: { roll: 0, pitch: 0, yaw: 0 }, acc: { x: 0, y: 0, z: 0 } } }, phone: { compass: 0, orient: { x: 0, y: 0 } }, gps: { coords: { accuracy: 0, altitude: 0, altitudeAccuracy: 0, heading: 0, latitude: 0, longitude: 0, speed: 0 }, timestamp: 0 } },
-    save: () => {
-        SensorsLogger.logs += SensorsLogger.log.ble.strue.s0 + ','
-        SensorsLogger.logs += SensorsLogger.log.ble.strue.s1 + ','
-        SensorsLogger.logs += SensorsLogger.log.ble.strue.s2 + ','
-        SensorsLogger.logs += SensorsLogger.log.ble.rpm + ','
-        SensorsLogger.logs += SensorsLogger.log.ble.ws + ','
-        SensorsLogger.logs += SensorsLogger.log.ble.adc + ','
-        SensorsLogger.logs += SensorsLogger.log.ble.deg + ','
-        
-        SensorsLogger.logs += SensorsLogger.log.phone.compass + ','
-        SensorsLogger.logs += SensorsLogger.log.phone.orient.x + ','
-        SensorsLogger.logs += SensorsLogger.log.phone.orient.y + ','
-
-        SensorsLogger.logs += SensorsLogger.log.gps.coords.accuracy + ','
-        SensorsLogger.logs += SensorsLogger.log.gps.coords.altitude ? SensorsLogger.log.gps.coords.altitude : '' + ','
-        SensorsLogger.logs += SensorsLogger.log.gps.coords.altitudeAccuracy ? SensorsLogger.log.gps.coords.altitudeAccuracy : '' + ','
-        SensorsLogger.logs += SensorsLogger.log.gps.coords.heading ? SensorsLogger.log.gps.coords.heading : '' + ','
-        SensorsLogger.logs += SensorsLogger.log.gps.coords.latitude + ','
-        SensorsLogger.logs += SensorsLogger.log.gps.coords.longitude + ','
-        SensorsLogger.logs += SensorsLogger.log.gps.coords.speed ? SensorsLogger.log.gps.coords.speed : '' + ','
-
-        SensorsLogger.logs += SensorsLogger.log.gps.timestamp + '\n'
-        SensorsLogger.log = { ble: { strue: { s0: false, s1: false, s2: false }, rpm: 0, ws: 0, adc: 0, deg: 0, mpu: { temp: 0, orient: { roll: 0, pitch: 0, yaw: 0 }, acc: { x: 0, y: 0, z: 0 } } }, phone: { compass: 0, orient: { x: 0, y: 0 } }, gps: { coords: { accuracy: 0, altitude: 0, altitudeAccuracy: 0, heading: 0, latitude: 0, longitude: 0, speed: 0 }, timestamp: 0 } }
+    time: {
+        start: new Date(),
+        ellapsed: '00:00:00'
     },
-    flush: () => {
-        
-        // TODO: Sand back logs to server...
-
-        console.log(SensorsLogger.logs)
-        SensorsLogger.logs = ''
-    }
+    is_running: false,
+    is_pauused: false,
+    log: { ble: { strue: { s0: false, s1: false, s2: false }, rpm: 0, ws: 0, adc: 0, deg: 0, mpu: { temp: 0, orient: { roll: 0, pitch: 0, yaw: 0 }, acc: { x: 0, y: 0, z: 0 } } }, phone: { compass: 0, orient: { x: 0, y: 0 } }, gps: { accuracy: 0, altitude: 0, altitudeAccuracy: 0, heading: 0, latitude: 0, longitude: 0, speed: 0 }, timestamp: 0 },
+    logs: [],
+    store: logger_store,
+    start: logger_start,
+    pause: logger_pause,
+    stop: logger_stop,
+    flush: logger_flush,
+    reset: logger_reset,
+    continue: logger_continue
 }
 
 var list10: number[] = []
@@ -194,7 +326,7 @@ function end() {
     BLEDevice.ms = sum / 10
 }
 
-export function BLEConnect() {
+export function BLEConnect(callback: Function) {
     navigator.bluetooth.requestDevice({
         filters: [{
             name: 'WS_TEST_ESP'
@@ -289,13 +421,15 @@ function messageChanged(event: Event) {
     BLEDevice.update.forEach(fun => fun())
 
     SensorsLogger.log.ble = BLEDevice.sensors
-    SensorsLogger.save()
-
-    if  (new Date() > nextTime) {
-        SensorsLogger.flush()
-        nextTime = new Date()
-        nextTime.setSeconds(nextTime.getSeconds() + 1)
+    if (SensorsLogger.is_running && !SensorsLogger.is_pauused) {
+        SensorsLogger.store()
     }
+
+    //if  (new Date() > nextTime) {
+    //    SensorsLogger.flush()
+    //    nextTime = new Date()
+    //    nextTime.setSeconds(nextTime.getSeconds() + config.flushInterval)
+    //}
 
 
     //console.log(BLEDevice)
