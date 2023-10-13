@@ -3,7 +3,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
 import { config } from '../config'
-import type { LogData } from '../components/HandleSensors'
+import { localdb } from './localdb'
 import type { App, Ref } from 'vue'
 import type { _Nullable } from 'vuefire'
 import type { User } from 'firebase/auth'
@@ -18,16 +18,6 @@ import type { FirebaseApp } from "firebase/app";
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
-/// Types
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
-type Device = {
-    name: string,
-    reconnect: boolean
-}
-
-
-/////////////////////////////////////////////////////////////////////////////////////////////////
 /// Consts
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -39,9 +29,6 @@ const googleAuthProvider    = new GoogleAuthProvider();
 const firestoreDb           = getFirestore(firebaseApp)
 var user: Ref<_Nullable<User>>
 
-
-const DEVICE_STORE_NAME = 'bt-device'
-const SENSOR_STORE_NAME = 'sensor-data'
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -105,65 +92,7 @@ function sensors_load(index: number, count: number = 1): LogData[][] | null {
 
 
 
-function local_sensors_store(logs: LogData[][]): void {
-    var sdata = local_sensors_load_all()
 
-    logs.forEach(log => sdata.unshift(log))
-
-    localStorage.setItem(SENSOR_STORE_NAME, JSON.stringify(sdata))
-}
-
-function local_sensors_load(index: number): LogData[] | null {
-    const sdata = local_sensors_load_all()
-    if (sdata.length < index || index < 0) {
-        return null
-    }
-    return sdata[index]
-}
-
-function local_sensors_load_all(): LogData[][] {
-    if (!localStorage.getItem(SENSOR_STORE_NAME)) {
-        return []
-    }
-    return JSON.parse(localStorage.getItem(SENSOR_STORE_NAME))
-}
-
-function local_sensors_len(): number {
-    return local_sensors_load_all().length
-}
-
-function local_sensors_clean(index: number): void {
-    const sdata = local_sensors_load_all()
-    if (sdata.length < index || index < 0) {
-        return null
-    }
-    sdata.splice(index, 1)
-    localStorage.setItem(SENSOR_STORE_NAME, JSON.stringify(sdata))
-}
-
-function local_sensors_clean_all(): void {
-    localStorage.setItem(SENSOR_STORE_NAME, '')
-}
-
-
-
-
-
-function device_load(): Device | null {
-    if (!localStorage.getItem(DEVICE_STORE_NAME)) {
-        return null
-    }
-
-    return JSON.parse(localStorage.getItem(DEVICE_STORE_NAME))
-}
-
-function device_store(dev: Device): void {
-    localStorage.setItem(DEVICE_STORE_NAME, JSON.stringify(dev))
-}
-
-function device_clear(): void {
-    localStorage.setItem(DEVICE_STORE_NAME, '')
-}
 
 
 
@@ -184,21 +113,7 @@ export const repo = {
             load:   sensors_load
         }
     },
-    local: {
-        sensors: {
-            store:      local_sensors_store,
-            load:       local_sensors_load,
-            load_all:   local_sensors_load_all,
-            len:        local_sensors_len,
-            clean:      local_sensors_clean,
-            clean_all:  local_sensors_clean_all
-        },
-        device: {
-            load:  device_load,
-            store: device_store,
-            clear: device_clear
-        }
-    }
+    local: localdb
 }
 
 

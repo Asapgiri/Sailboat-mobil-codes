@@ -60,6 +60,7 @@ function changeOrientation(e: any) {
     const e_orent = document.getElementById('orient')
     if (e_orent) {
         e_orent.innerText = `x: ${format.orient(orient.x)}deg, y: ${format.orient(orient.y)}deg ... tilt: ${format.orient(e.gamma)}`
+        e_orent.innerHTML += '<br/>gamma:' + e.gamma + '<br/>alpha:' + e.alpha + '<br/>beta:' + e.beta
     }
 }
 

@@ -19,5 +19,5 @@ const firebaseConfig = {
 export const config = {
     firebaseConfig: firebaseConfig,
     siteKey: '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI',
-    extendedView: false
+    extendedView: true
 }
