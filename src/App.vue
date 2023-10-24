@@ -90,9 +90,7 @@ if ("wakeLock" in navigator) {
         <main class="d-flex justify-content-center">
             <div class="container py-2 h-100">
                 <div class="row d-flex align-items-center justify-content-center h-100">
-                    <div class="col-12">
                         <CurrentPage/>
-                    </div>
                 </div>
             </div>
         </main>

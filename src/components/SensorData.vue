@@ -23,14 +23,13 @@ export default defineComponent({
 </script>
 
 <template>
-    <div class="row">
-        <div class="col-6">
-            Stored log count: {{ SensorsLogger.logs.length }}
-        </div>
-        <div class="col-6">
-            Ellapsed: <span v-bind:class="SensorsLogger.is_running ? SensorsLogger.is_pauused ? 'text-danger' : 'text-success' : ''">{{ SensorsLogger.time.ellapsed }}</span>
-        </div>
+    <div class="col-6">
+        Stored log count: {{ SensorsLogger.logs.length }}
     </div>
+    <div class="col-6">
+        Ellapsed: <span v-bind:class="SensorsLogger.is_running ? SensorsLogger.is_pauused ? 'text-danger' : 'text-success' : ''">{{ SensorsLogger.time.ellapsed }}</span>
+    </div>
+        
     <div v-if="!BLEDevice.connected">
         <button class="btn btn-primary py-3 w-100 mb-2" :onclick="connect">Connect</button>
     </div>

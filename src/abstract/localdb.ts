@@ -39,6 +39,14 @@ type Device = {
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
 const request = window.indexedDB.open(DB_NAME)
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
+
+async function open_transaction() {
+    while (!db) { await sleep(10) }
+    const transaction = db.transaction([TRIP_TABLE_NAME, LOGS_TABLE_NAME], "readwrite")
+    t_trips = transaction.objectStore(TRIP_TABLE_NAME)
+    t_logs = transaction.objectStore(LOGS_TABLE_NAME)
+}
 
 request.onerror = (event) => {
     alert('Error opening BD:' + event)
@@ -46,9 +54,6 @@ request.onerror = (event) => {
 
 request.onsuccess = (event: any) => {
     db = event.target.result
-    const transaction = db.transaction([TRIP_TABLE_NAME, LOGS_TABLE_NAME], "readwrite")
-    t_trips = transaction.objectStore(TRIP_TABLE_NAME)
-    t_logs = transaction.objectStore(LOGS_TABLE_NAME)
 }
 
 request.onupgradeneeded = (event: any) => {
@@ -73,31 +78,56 @@ request.onupgradeneeded = (event: any) => {
 /// Internals
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-function trip_create(name: string): number {
-    if (!t_trips) return 0
+function return_tr_as_promise(t: IDBRequest<IDBValidKey | IDBValidKey[]> | undefined): Promise<IDBValidKey | IDBValidKey[] | null> {
+    return new Promise((resolve, reject) => {
+        if (undefined == t) {
+            resolve(null)
+            return
+        }
+        t.onsuccess = (err: any) => {
+            resolve(t.result)
+        }
+        t.onerror = (err: any) => {
+            console.log(err)
+            reject()
+        }
+    })
+}
+
+async function trip_create(name: string): Promise<IDBValidKey> {
+    await open_transaction()
+    if (!t_trips) return new Promise((resolve, reject) => reject())
+
     t_trips.add(name)
-    let keys = t_trips.getAllKeys()
-    console.log(keys.result)
-    return keys.result
+    const keys = t_trips.getAllKeys()
+
+    return return_tr_as_promise(keys)
 }
 
-function trip_get(key: number) {
-
+async function trip_get(key: number): Promise<IDBValidKey[]> {
+    await open_transaction()
+    return return_tr_as_promise(t_trips.getKey(key))
 }
 
-function trip_get_all() {
-
+async function trip_get_all(): Promise<IDBValidKey[]> {
+    await open_transaction()
+    const trips = t_trips.getAll()
+    return return_tr_as_promise(trips)
 }
 
-function trip_delete(key: number) {
-
+async function trip_delete(key: number) {
+    await open_transaction()
+    t_trips.delete(key)
 }
 
-function sensor_store(key: number, log: LogData): void {
+
+async function sensor_store(key: number, log: LogData): void {
+    await open_transaction()
     t_logs.add(log, key)
 }
 
-function sensor_load(index: number): LogData[] | null {
+async function sensor_load(index: number): LogData[] | null {
+    await open_transaction()
     const sdata = local_sensors_load_all()
     if (sdata.length < index || index < 0) {
         return null
@@ -105,18 +135,18 @@ function sensor_load(index: number): LogData[] | null {
     return sdata[index]
 }
 
-function local_sensors_load_all(): LogData[][] {
-    if (!localStorage.getItem(SENSOR_STORE_NAME)) {
-        return []
-    }
-    return JSON.parse(localStorage.getItem(SENSOR_STORE_NAME))
+async function local_sensors_load_all(): LogData[][] {
+    await open_transaction()
+
 }
 
-function local_sensors_len(): number {
+async function local_sensors_len(): number {
+    await open_transaction()
     return local_sensors_load_all().length
 }
 
-function local_sensors_clean(index: number): void {
+async function local_sensors_clean(index: number): void {
+    await open_transaction()
     const sdata = local_sensors_load_all()
     if (sdata.length < index || index < 0) {
         return null
@@ -125,7 +155,8 @@ function local_sensors_clean(index: number): void {
     localStorage.setItem(SENSOR_STORE_NAME, JSON.stringify(sdata))
 }
 
-function local_sensors_clean_all(): void {
+async function local_sensors_clean_all(): void {
+    await open_transaction()
     localStorage.setItem(SENSOR_STORE_NAME, '')
 }
 
@@ -164,7 +195,8 @@ export const localdb = {
     sensors: {
         store:      sensor_store,
         load:       sensor_load,
-        //load_all:   sensor_load_all,
+        load_trips: trip_get_all,
+        //load_all:   local_sensors_load_all,
         //len:        sensor_len,
         //clean:      sensor_clean,
         //clean_all:  sensor_clean_all

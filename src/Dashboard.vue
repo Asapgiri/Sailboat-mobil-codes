@@ -1,12 +1,17 @@
-<script setup>
+<script lang="ts" setup>
 import {  SensorsLogger } from './components/HandleSensors'
 import { repo } from './abstract/repository'
 
+var savedlogs: any
+repo.local.sensors.load_trips()
+.then(res => { savedlogs = res })
+
 function create() {
-    const trip = repo.local.trip.create('no')
-    console.log(trip)
+    //repo.local.trip.create('no')
+    //    .then((res) => console.log(res))
+
+    console.log(savedlogs)
 }
-var savedlogs = null //repo.local.sensors.load_all()
 </script>
 
 <template>
