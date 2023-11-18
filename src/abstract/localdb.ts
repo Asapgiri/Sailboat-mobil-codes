@@ -1,4 +1,4 @@
-import type { LogData } from '../components/HandleSensors'
+import type { LogData } from './sensorlog_models'
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /// Consts
@@ -23,6 +23,8 @@ var db: IDBDatabase
 var t_trips: IDBObjectStore
 var t_logs: IDBObjectStore
 
+export var LocalDbInit: Function[] = []
+
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /// Types
@@ -33,16 +35,16 @@ type Device = {
     reconnect: boolean
 }
 
+type TrPromise = Promise<IDBValidKey | IDBValidKey[] | null>
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /// Initialization
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
 const request = window.indexedDB.open(DB_NAME)
-const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
 
 async function open_transaction() {
-    while (!db) { await sleep(10) }
+    //while (!db) { return false }
     const transaction = db.transaction([TRIP_TABLE_NAME, LOGS_TABLE_NAME], "readwrite")
     t_trips = transaction.objectStore(TRIP_TABLE_NAME)
     t_logs = transaction.objectStore(LOGS_TABLE_NAME)
@@ -54,6 +56,7 @@ request.onerror = (event) => {
 
 request.onsuccess = (event: any) => {
     db = event.target.result
+    LocalDbInit.forEach(fun => fun())
 }
 
 request.onupgradeneeded = (event: any) => {
@@ -78,7 +81,7 @@ request.onupgradeneeded = (event: any) => {
 /// Internals
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-function return_tr_as_promise(t: IDBRequest<IDBValidKey | IDBValidKey[]> | undefined): Promise<IDBValidKey | IDBValidKey[] | null> {
+function return_tr_as_promise(t: IDBRequest<IDBValidKey[]> | undefined): TrPromise {
     return new Promise((resolve, reject) => {
         if (undefined == t) {
             resolve(null)
@@ -94,8 +97,8 @@ function return_tr_as_promise(t: IDBRequest<IDBValidKey | IDBValidKey[]> | undef
     })
 }
 
-async function trip_create(name: string): Promise<IDBValidKey> {
-    await open_transaction()
+function trip_create(name: string): TrPromise {
+    open_transaction()
     if (!t_trips) return new Promise((resolve, reject) => reject())
 
     t_trips.add(name)
@@ -104,12 +107,12 @@ async function trip_create(name: string): Promise<IDBValidKey> {
     return return_tr_as_promise(keys)
 }
 
-async function trip_get(key: number): Promise<IDBValidKey[]> {
+async function trip_get(key: number): TrPromise {
     await open_transaction()
     return return_tr_as_promise(t_trips.getKey(key))
 }
 
-async function trip_get_all(): Promise<IDBValidKey[]> {
+async function trip_get_all(): TrPromise {
     await open_transaction()
     const trips = t_trips.getAll()
     return return_tr_as_promise(trips)
@@ -119,6 +122,7 @@ async function trip_delete(key: number) {
     await open_transaction()
     t_trips.delete(key)
 }
+
 
 
 async function sensor_store(key: number, log: LogData): void {
@@ -189,8 +193,11 @@ function device_clear(): void {
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
 export const localdb = {
+    open: open_transaction,
     trip: {
-        create: trip_create
+        create: trip_create,
+        get_all: trip_get_all,
+        delete: trip_delete
     },
     sensors: {
         store:      sensor_store,

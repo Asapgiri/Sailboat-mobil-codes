@@ -3,7 +3,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
 import { config } from '../config'
-import { localdb } from './localdb'
+import { localdb, LocalDbInit } from './localdb'
 import type { App, Ref } from 'vue'
 import type { _Nullable } from 'vuefire'
 import type { User } from 'firebase/auth'
@@ -29,6 +29,7 @@ const googleAuthProvider    = new GoogleAuthProvider();
 const firestoreDb           = getFirestore(firebaseApp)
 var user: Ref<_Nullable<User>>
 
+export var DbInit = LocalDbInit
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
