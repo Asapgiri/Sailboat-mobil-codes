@@ -10,9 +10,10 @@ import 'bootstrap-vue/dist/bootstrap-vue.css'
 import 'bootstrap/dist/js/bootstrap.min.js'
 import '@popperjs/core/dist/cjs/popper.js'
 
-const app = createApp(App)
+export const app = createApp(App)
 
 repo.init(app)
 
 app.mount('#app')
+
 

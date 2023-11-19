@@ -80,13 +80,19 @@ var sm_row_count = 1
 
 var initTime = new Date()
 
+var tripkey: number | null = null
+
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /// Internals
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
 function logger_store(): void {
-    SensorsLogger.logs.push(SensorsLogger.log)
+    if (tripkey) {
+        SensorsLogger.log.tripindex = tripkey
+        repo.local.sensors.store(SensorsLogger.log)
+    }
+    //SensorsLogger.logs.push(SensorsLogger.log)
     SensorsLogger.log = {
         ble: {
             strue: {
@@ -139,6 +145,11 @@ function logger_start(): void {
 
     SensorsLogger.time.start = new Date()
     SensorsLogger.is_running = true
+
+    repo.local.trip.create("TRIP: " + SensorsLogger.time.start)
+    .then(tripkeys => {
+        tripkey = tripkeys[tripkeys.length -1]
+    })
 }
 
 function logger_stop(): void {
@@ -150,7 +161,7 @@ function logger_stop(): void {
     SensorsLogger.is_running = false
 
     // store data locally
-    repo.local.sensors.store([SensorsLogger.logs])
+    //repo.local.sensors.store(tripkey, [SensorsLogger.logs])
     SensorsLogger.logs = []
 }
 

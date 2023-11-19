@@ -24,6 +24,8 @@ type WSBLESensorsType = {
 }
 
 export type LogData = {
+    tripindex: number,
+    timestamp: number,
     ble: WSBLESensorsType,
     phone: {
         compass: number,
@@ -37,6 +39,5 @@ export type LogData = {
         latitude: number,
         longitude: number,
         speed: number | null
-    },
-    timestamp: number
+    }
 }

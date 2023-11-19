@@ -109,13 +109,34 @@ function trip_create(name: string): TrPromise {
 
 async function trip_get(key: number): TrPromise {
     await open_transaction()
-    return return_tr_as_promise(t_trips.getKey(key))
+    return return_tr_as_promise(t_trips.get(key))
 }
 
-async function trip_get_all(): TrPromise {
+async function trip_get_all() {
     await open_transaction()
-    const trips = t_trips.getAll()
-    return return_tr_as_promise(trips)
+    var request = t_trips.getAllKeys()
+    var ret: {key: any, value: any}[] = []
+
+    return new Promise((resolve, reject) => {
+        request.onsuccess = (event: any) => {
+            let keys = request.result
+            request = t_trips.getAll()
+            request.onsuccess = (event: any) => {
+                let values = request.result
+                let i = 0
+                keys.forEach(key => ret.push({key: key, value: values[i++]}))
+                resolve(ret)
+            }
+            request.onerror = (err: any) => {
+                console.log(err)
+                reject()
+            }
+        }
+        request.onerror = (err: any) => {
+            console.log(err)
+            reject()
+        }
+    })
 }
 
 async function trip_delete(key: number) {
@@ -125,43 +146,40 @@ async function trip_delete(key: number) {
 
 
 
-async function sensor_store(key: number, log: LogData): void {
+async function sensor_store(log: LogData) {
     await open_transaction()
-    t_logs.add(log, key)
+    t_logs.add(log)
 }
 
-async function sensor_load(index: number): LogData[] | null {
+async function sensor_load(key: number): TrPromise {
     await open_transaction()
-    const sdata = local_sensors_load_all()
-    if (sdata.length < index || index < 0) {
-        return null
-    }
-    return sdata[index]
+    const all_logs = t_logs.getAll()
+
+    return new Promise((resolve, reject) => {
+        all_logs.onsuccess = (err: any) => {
+            const relevant_logs = []
+            all_logs.result.forEach(log => {
+                if (log.tripindex == key) {
+                    relevant_logs.push(log)
+                }
+            })
+            resolve(relevant_logs)
+        }
+        all_logs.onerror = (err: any) => {
+            console.log(err)
+            reject()
+        }
+    })
 }
 
-async function local_sensors_load_all(): LogData[][] {
+async function local_sensors_clean(key: number) {
     await open_transaction()
-
+    t_logs.delete(key)
 }
 
-async function local_sensors_len(): number {
+async function local_sensors_clean_all() {
     await open_transaction()
-    return local_sensors_load_all().length
-}
-
-async function local_sensors_clean(index: number): void {
-    await open_transaction()
-    const sdata = local_sensors_load_all()
-    if (sdata.length < index || index < 0) {
-        return null
-    }
-    sdata.splice(index, 1)
-    localStorage.setItem(SENSOR_STORE_NAME, JSON.stringify(sdata))
-}
-
-async function local_sensors_clean_all(): void {
-    await open_transaction()
-    localStorage.setItem(SENSOR_STORE_NAME, '')
+    t_logs.clear()
 }
 
 
@@ -196,17 +214,16 @@ export const localdb = {
     open: open_transaction,
     trip: {
         create: trip_create,
+        get: trip_get,
         get_all: trip_get_all,
         delete: trip_delete
     },
     sensors: {
-        store:      sensor_store,
-        load:       sensor_load,
-        load_trips: trip_get_all,
-        //load_all:   local_sensors_load_all,
-        //len:        sensor_len,
-        //clean:      sensor_clean,
-        //clean_all:  sensor_clean_all
+        store:          sensor_store,
+        load:           sensor_load,
+        //load_for_trips: trip_get_all,
+        clean:          local_sensors_clean,
+        clean_all:      local_sensors_clean_all
     },
     device: {
         load:  device_load,
