@@ -3,6 +3,7 @@ import Meter from './Meter.vue'
 import Dashboard from './Dashboard.vue'
 import Login from './Login.vue'
 import Logout from './Logout.vue'
+import DashView from './DashView.vue'
 import { useCurrentUser } from 'vuefire'
 
 const user = useCurrentUser()
@@ -16,10 +17,11 @@ loggedin()
 
 // routing
 const routes = [
-    { name: 'Dashboard', app: Dashboard, route: '/dashboard' },
-    { name: 'Meter',     app: Meter,     route: '/meter' },
-    { name: 'Login',     app: Login,     route: '/login' },
-    { name: 'Logout',    app: Logout,    route: '/logout' }
+    { name: 'Dashboard', app: Dashboard, route: '/dashboard', onbar: true },
+    { name: 'Meter',     app: Meter,     route: '/meter',     onbar: true },
+    { name: 'Login',     app: Login,     route: '/login',     onbar: true },
+    { name: 'Logout',    app: Logout,    route: '/logout',    onbar: true },
+    { name: 'DashView',  app: DashView,  route: '/dashview',  onbar: false }
 ]
 
 var CurrentPage = Dashboard
@@ -77,7 +79,7 @@ if ("wakeLock" in navigator) {
             <div class="collapse navbar-collapse" id="navbarsExample03">
                 <ul class="navbar-nav mr-auto">
                     <li v-for="route in routes" class="nav-item">
-                        <a v-if="(route.app != Logout && route.app != Login) || ((route.app == Logout && user) || (route.app == Login && !user))" class="nav-link" v-bind:href="route.route">
+                        <a v-if="route.onbar && ((route.app != Logout && route.app != Login) || ((route.app == Logout && user) || (route.app == Login && !user)))" class="nav-link" v-bind:href="route.route">
                             {{ route.name }} {{ route.app == CurrentPage ? '<' : '' }}
                         </a>
                     </li>

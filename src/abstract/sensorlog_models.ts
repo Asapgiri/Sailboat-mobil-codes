@@ -1,3 +1,7 @@
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/// Inner types
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
 type WSBLESensorsType = {
     strue: {
         s0: boolean
@@ -23,6 +27,13 @@ type WSBLESensorsType = {
     }
 }
 
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/// Export
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+export type TrPromise = Promise<IDBValidKey | IDBValidKey[] | null>
+
 export type LogData = {
     tripindex: number,
     timestamp: number,
@@ -40,4 +51,14 @@ export type LogData = {
         longitude: number,
         speed: number | null
     }
+}
+
+export type TripData = {
+    user: string,
+    name: string,
+    date: {
+        start: number,
+        end: number
+    },
+    logid: string
 }

@@ -1,4 +1,4 @@
-import type { LogData } from './sensorlog_models'
+import type { LogData, TrPromise } from './sensorlog_models'
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /// Consts
@@ -34,8 +34,6 @@ type Device = {
     name: string,
     reconnect: boolean
 }
-
-type TrPromise = Promise<IDBValidKey | IDBValidKey[] | null>
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /// Initialization

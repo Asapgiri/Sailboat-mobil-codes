@@ -1,3 +1,5 @@
+import { env } from '../env.d'
+
 // Import the functions you need from the SDKs you need
 //import getAnalytics from "firebase/analytics";
 
@@ -7,17 +9,32 @@
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-    apiKey: "AIzaSyBat95NMxlngxO7mt_cfbXuWF37wgVDf2c",
+    apiKey: env.FIREBASE_API_KEY,
     authDomain: "sailboat-multimeter.firebaseapp.com",
     projectId: "sailboat-multimeter",
     storageBucket: "sailboat-multimeter.appspot.com",
-    messagingSenderId: "542000042857",
-    appId: "1:542000042857:web:24ac46b2488d1c7cb9a3f8",
-    measurementId: "G-EZ3EKHX224"
+    messagingSenderId: env.FIREBASE_SENDER_ID,
+    appId: env.FIREBASE_APP_ID,
+    measurementId: env.FIREBASE_MEASUREMENT_ID
+}
+
+const mapbox = {
+    token: env.MAPBOX_API_TOKEN,
+    //style: "mapbox://styles/mapbox/light-v11",
+    //style: "mapbox://styles/mapbox/navigation-night-v1",
+    style: "mapbox://styles/mapbox/streets-v12",
+    height: "600px",
+    center: [47.497913,19.040236],
+    line: {
+        color: "#FFA500",
+        width: 8
+    }
 }
 
 export const config = {
     firebaseConfig: firebaseConfig,
-    siteKey: '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI',
+    mapbox: mapbox,
     extendedView: true
 }
+
+//process.env.FIREBASE_API_KEY

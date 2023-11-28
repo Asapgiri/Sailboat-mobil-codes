@@ -94,6 +94,7 @@ function logger_store(): void {
     }
     //SensorsLogger.logs.push(SensorsLogger.log)
     SensorsLogger.log = {
+        tripindex: 0,
         ble: {
             strue: {
                 s0: false,
@@ -209,12 +210,16 @@ function logger_flush(): void {
         return
     }
 
-    var savedlogs: LogData[][] = repo.local.sensors.load_all()
-
-    repo.db.sensors.store(savedlogs.reverse())
-    repo.db.sensors.store([SensorsLogger.logs])
-
-    repo.local.sensors.clean_all()
+    repo.local.open()
+    .then(repo.local.trip.get_all)
+    .then(trips => {
+        trips.forEach(trip => {
+            repo.local.sensors.load(trip.key)
+            .then(logs => {
+                repo.db.trip.store(trip.value, logs)
+            })
+        })
+    })
 }
 
 

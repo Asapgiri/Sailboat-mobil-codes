@@ -37,11 +37,20 @@ function format_sw(time: number): string {
     return `${hour}:${min}:${sec}`
 }
 
+function format_datetime(datetime: number | Date): string {
+    if ('number' == typeof(datetime)) {
+        datetime = new Date(datetime)
+    }
+
+    return datetime.toLocaleString()
+}
+
 
 export const format = {
     orient:     format_number2,
     speed:      format_number2,
     gps:        format_number3,
     ms_show:    format_number0,
-    timer:      format_sw
+    timer:      format_sw,
+    datetime:   format_datetime
 }
