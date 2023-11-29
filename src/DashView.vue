@@ -41,6 +41,7 @@ export default defineComponent({
             }
         },
         load_external() {
+            console.log('load external', this.search)
             const intid = setInterval(() => {
                 //console.log('interval..')
                 if (this.user) {
@@ -61,7 +62,7 @@ export default defineComponent({
         },
         load_local() {
             this.search_init()
-            console.log('hello', this.search)
+            console.log('load local', this.search)
             repo.local.open()
             .then(() => repo.local.trip.get(parseInt(this.search.tid)))
             .then(trip => {
@@ -89,44 +90,46 @@ export default defineComponent({
                         }
                     }
 
-                    this.logs.forEach(spot => {
-                        gj.data.geometry.coordinates.push([
-                            spot.gps.longitude,
-                            spot.gps.latitude,
-                        ])
-                    })
+                    if (this.logs.length) {
+                        this.logs.forEach(spot => {
+                            gj.data.geometry.coordinates.push([
+                                spot.gps.longitude,
+                                spot.gps.latitude,
+                            ])
+                        })
 
-                    console.log(gj)
-                    this.map.addSource('trip', gj)
+                        console.log(gj)
+                        this.map.addSource('trip', gj)
 
-                    // Create a 'LngLatBounds' with both corners at the first coordinate.
-                    const bounds = new mapboxgl.LngLatBounds(
-                        gj.data.geometry.coordinates[0],
-                        gj.data.geometry.coordinates[0]
-                    );
-                    
-                    // Extend the 'LngLatBounds' to include every coordinate in the bounds result.
-                    for (const coord of gj.data.geometry.coordinates) {
-                        bounds.extend(coord);
-                    }
-                    
-                    this.map.fitBounds(bounds, {
-                        padding: 20
-                    });
-
-                    this.map.addLayer({
-                        'id': 'trip',
-                        'type': 'line',
-                        'source': 'trip',
-                        'layout': {
-                            'line-join': 'round',
-                            'line-cap': 'round'
-                        },
-                        'paint': {
-                            'line-color': config.mapbox.line.color,
-                            'line-width': config.mapbox.line.width
+                        // Create a 'LngLatBounds' with both corners at the first coordinate.
+                        const bounds = new mapboxgl.LngLatBounds(
+                            gj.data.geometry.coordinates[0],
+                            gj.data.geometry.coordinates[0]
+                        );
+                        
+                        // Extend the 'LngLatBounds' to include every coordinate in the bounds result.
+                        for (const coord of gj.data.geometry.coordinates) {
+                            bounds.extend(coord);
                         }
-                    })
+                        
+                        this.map.fitBounds(bounds, {
+                            padding: 20
+                        });
+
+                        this.map.addLayer({
+                            'id': 'trip',
+                            'type': 'line',
+                            'source': 'trip',
+                            'layout': {
+                                'line-join': 'round',
+                                'line-cap': 'round'
+                            },
+                            'paint': {
+                                'line-color': config.mapbox.line.color,
+                                'line-width': config.mapbox.line.width
+                            }
+                        })
+                    }
                 }
             })
         },
@@ -167,6 +170,6 @@ export default defineComponent({
         <!--
         <div v-for="spot in logs">{{ spot }}</div>
         -->
-        <button class="btn w-100 mt-1 btn-danger  p-2 mx-0"  @click="trip.external ? delete_trip_db(trip.key) : delete_trip_local(trip.key)">Delete</button>
+        <button class="btn w-100 mt-1 btn-danger  p-2 mx-0"  @click="search.ext ? delete_trip_db(search.tid) : delete_trip_local(search.tid)">Delete</button>
     </div>
 </template>

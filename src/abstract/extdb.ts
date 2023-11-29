@@ -163,9 +163,14 @@ async function trip_load_all(): Promise<DocumentSnapshot<DocumentData, DocumentD
 
 async function trip_delete(key: string): Promise<any> {
     return new Promise((resolve, reject) => {
-        trip_load(key).then(() => {
-            deleteDoc(doc(firestoreDb, DB_TABLE_TRIPS, key))
+        console.log('search trip: ', key)
+        trip_load(key)
+        .then(() => {
+            console.log('found trip: ', key)
+            return deleteDoc(doc(firestoreDb, DB_TABLE_TRIPS, key))
         })
+        .then(resolve)
+        .catch(reject)
     })
 }
 

@@ -70,7 +70,7 @@ if ("wakeLock" in navigator) {
 
 <template>
     <div class="container-fluid m-0 p-0">
-        <nav class="navbar navbar-expand navbar-dark bg-dark">
+        <nav class="navbar navbar-expand-sm navbar-dark bg-dark">
             <a class="navbar-brand mx-2" href="/">Sailboat Multimeter</a>
             <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarsExample03" aria-controls="navbarsExample03" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
@@ -79,8 +79,8 @@ if ("wakeLock" in navigator) {
             <div class="collapse navbar-collapse" id="navbarsExample03">
                 <ul class="navbar-nav mr-auto">
                     <li v-for="route in routes" class="nav-item">
-                        <a v-if="route.onbar && ((route.app != Logout && route.app != Login) || ((route.app == Logout && user) || (route.app == Login && !user)))" class="nav-link" v-bind:href="route.route">
-                            {{ route.name }} {{ route.app == CurrentPage ? '<' : '' }}
+                        <a v-if="route.onbar && ((route.app != Logout && route.app != Login) || ((route.app == Logout && user) || (route.app == Login && !user)))" class="nav-link" :class="route.app == CurrentPage ? 'active' : ''" v-bind:href="route.route">
+                            {{ route.name }}
                         </a>
                     </li>
                 </ul>
