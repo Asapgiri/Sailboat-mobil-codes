@@ -29,8 +29,10 @@ var orient = {
     x: 0,
     y: 0
 }
+var rotm: number[]
 
-const degrees_to_radians = (deg:number) => (deg * Math.PI) / 180.0;
+const degrees_to_radians = (deg:number) => (deg * Math.PI) / 180.0
+const rot_to_rad = (mval: number) => mval * Math.PI * 2
 
 function changeCompass(e: any) {
     compass = e.webkitCompassHeading || Math.abs(e.alpha - 360)
@@ -46,23 +48,95 @@ function changeOrientation(e: any) {
     const e_orientation = document.getElementById('orientation')
     if (!e_orientation) return
     
+    const quaterns = getQuaternion(e.alpha, e.beta, e.gamma)
+    rotm = getRotationMatrix(e.alpha, e.beta, e.gamma)
     if (!orientation_initialized) {
         orientation_initialized = true
-        orient_offset_y = -e.beta
+        orient_offset_y = rotm[8]
     }
-    orient.x = -e.gamma
-    orient.y = (e.beta + orient_offset_y) * 3
+    orient.x = rotm[6] * 90
+    orient.y = (rotm[8] - orient_offset_y) * 180
     
     e_orientation.style.rotate = `${orient.x}deg`
-    const vertical   = Math.cos(-degrees_to_radians(orient.x)) * orient.y //* (-1)
-    const horizontal = Math.sin(-degrees_to_radians(orient.x)) * orient.y //* (-1)
+    
+    const vertical   = orient.y        // Math.cos(orient.x) * orient.y //* (-1)
+    const horizontal = 0               // Math.sin(orient.x) * orient.y //* (-1)
     e_orientation.style.translate    = `${horizontal}px ${vertical}px`
+
     const e_orent = document.getElementById('orient')
     if (e_orent) {
         e_orent.innerText = `x: ${format.orient(orient.x)}deg, y: ${format.orient(orient.y)}deg ... tilt: ${format.orient(e.gamma)}`
-        e_orent.innerHTML += '<br/>gamma:' + e.gamma + '<br/>alpha:' + e.alpha + '<br/>beta:' + e.beta
+        //e_orent.innerHTML += '<br/> ' + format.orient(e.gamma)  + ' gamma'
+        //e_orent.innerHTML += '<br/> ' + format.orient(e.alpha)  + ' alpha'
+        //e_orent.innerHTML += '<br/> ' + format.orient(e.beta)   + ' beta'
+        //
+        //e_orent.innerHTML += '<br/>' + format.orient(quaterns.w)
+        //e_orent.innerHTML += '<br/>' + format.orient(quaterns.x)
+        //e_orent.innerHTML += '<br/>' + format.orient(quaterns.y)
+        //e_orent.innerHTML += '<br/>' + format.orient(quaterns.z)
+        
+        //e_orent.innerHTML += '<br/>' + format.orient(rotm[0]) + ' ' + format.orient(rotm[1]) + ' ' + format.orient(rotm[2])
+        //e_orent.innerHTML += '<br/>' + format.orient(rotm[3]) + ' ' + format.orient(rotm[4]) + ' ' + format.orient(rotm[5 ])
+        //e_orent.innerHTML += '<br/>' + format.orient(rotm[6]) + ' ' + format.orient(rotm[7]) + ' ' + format.orient(rotm[8])
     }
 }
+
+const degtorad = Math.PI / 180; // Degree-to-Radian conversion
+
+function getRotationMatrix(alpha: number, beta: number, gamma: number) {
+    var _x = beta  ? beta  * degtorad : 0; // beta value
+    var _y = gamma ? gamma * degtorad : 0; // gamma value
+    var _z = alpha ? alpha * degtorad : 0; // alpha value
+
+    var cX = Math.cos( _x );
+    var cY = Math.cos( _y );
+    var cZ = Math.cos( _z );
+    var sX = Math.sin( _x );
+    var sY = Math.sin( _y );
+    var sZ = Math.sin( _z );
+
+    //
+    // ZXY rotation matrix construction.
+    var m11 = cZ * cY - sZ * sX * sY;
+    var m12 = - cX * sZ;
+    var m13 = cY * sZ * sX + cZ * sY;
+
+    var m21 = cY * sZ + cZ * sX * sY;
+    var m22 = cZ * cX;
+    var m23 = sZ * sY - cZ * cY * sX;
+
+    var m31 = - cX * sY;
+    var m32 = sX;
+    var m33 = cX * cY;
+
+    return [
+        m11,    m12,    m13,
+        m21,    m22,    m23,
+        m31,    m32,    m33
+    ];
+}
+
+function getQuaternion(alpha: number, beta: number, gamma: number) {
+    var _x = beta  ? beta  * degtorad : 0; // beta value
+    var _y = gamma ? gamma * degtorad : 0; // gamma value
+    var _z = alpha ? alpha * degtorad : 0; // alpha value
+
+    var cX = Math.cos( _x/2 );
+    var cY = Math.cos( _y/2 );
+    var cZ = Math.cos( _z/2 );
+    var sX = Math.sin( _x/2 );
+    var sY = Math.sin( _y/2 );
+    var sZ = Math.sin( _z/2 );
+
+    //
+    // ZXY quaternion construction.
+    var w = cX * cY * cZ - sX * sY * sZ;
+    var x = sX * cY * cZ - cX * sY * sZ;
+    var y = cX * sY * cZ + sX * cY * sZ;
+    var z = cX * cY * sZ + sX * sY * cZ;
+
+    return {w, x, y, z};
+} 
 
 function changeWindDirection() {
     const e_wind_dir_apparent = document.getElementById('wind_dir_apparent')
@@ -74,7 +148,7 @@ function changeWindDirection() {
 function change() {
     changeWindDirection()
     SensorsLogger.log.phone.compass = -compass
-    SensorsLogger.log.phone.orient  = orient
+    SensorsLogger.log.phone.orient  = rotm
 }
 
 BLEDevice.update.push(change)
@@ -115,7 +189,9 @@ BLEDevice.update.push(change)
     </div> -->
     <div>
         <!-- Orient: x: {{ format.orient(orient.x) }}, y: {{ format.orient(orient.y) }}<br> -->
-        <span id="orient"></span>
+        <h4>
+            <span id="orient"></span>
+        </h4>
     </div>
 
     <div><button class="btn btn-danger py-3 w-100 mb-2" :onclick="reset_orientation">Reset Orientation</button></div>

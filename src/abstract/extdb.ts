@@ -12,7 +12,8 @@ import { initializeApp } from 'firebase/app'
 import { signInWithRedirect, GoogleAuthProvider, PhoneAuthProvider } from "firebase/auth";
 import { useCurrentUser, useFirebaseAuth } from "vuefire";
 
-import { getFirestore, collection, addDoc, getDocs, query, where, doc, getDoc } from "firebase/firestore";
+import { getFirestore, collection, addDoc, getDocs,
+         query, where, doc, getDoc, deleteDoc } from "firebase/firestore";
 import { ReCaptchaV3Provider } from 'firebase/app-check'
 import type { FirebaseApp } from "firebase/app";
 
@@ -60,14 +61,9 @@ function phone_login(phonenumber: string): void {
     //})
 }
 
-function google_login(): void {
+function google_login() {
     console.log("login with google");
-    signInWithRedirect(auth, googleAuthProvider)
-    .then(() => window.location.href = '/')
-    .catch((reason) => {
-    alert(reason)
-    console.error("Failed sign", reason);
-})
+    return signInWithRedirect(auth, googleAuthProvider)
 }
 
 function sensors_store(logs: LogData[]): Promise<string> {
@@ -165,6 +161,14 @@ async function trip_load_all(): Promise<DocumentSnapshot<DocumentData, DocumentD
     })
 }
 
+async function trip_delete(key: string): Promise<any> {
+    return new Promise((resolve, reject) => {
+        trip_load(key).then(() => {
+            deleteDoc(doc(firestoreDb, DB_TABLE_TRIPS, key))
+        })
+    })
+}
+
 function dummy(a: any = null, b: any = null, c: any = null, d: any = null,
                e: any = null, f: any = null, g: any = null, h: any = null,): void { }
 
@@ -184,7 +188,7 @@ export const extdb = {
             store:   trip_store,
             load:    trip_load,
             loadall: trip_load_all,
-            delete:  dummy
+            delete:  trip_delete
         },
         sensors: {
             load:   sensors_load,

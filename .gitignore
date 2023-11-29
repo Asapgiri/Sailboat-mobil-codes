@@ -391,3 +391,5 @@ coverage
 *.njsproj
 *.sln
 *.sw?
+
+*env*

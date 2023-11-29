@@ -40,10 +40,7 @@ export type LogData = {
     ble: WSBLESensorsType,
     phone: {
         compass: number,
-        orient: {
-            x: number,
-            y: number
-        }
+        orient: number[]
     },
     gps: {
         accuracy: number,

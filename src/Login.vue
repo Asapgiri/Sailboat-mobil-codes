@@ -3,10 +3,6 @@ import "./assets/login.css";
 import { repo } from './abstract/repository'
 
 
-
-//applicationVerifier.render().then(ret => console.log(ret))
-//applicationVerifier.verify()
-
 type Country = {
   name: string;
   dial_code: string;
@@ -62,6 +58,12 @@ getJSON(
 
 function login_w_phone() {
   repo.login.phone(login.country + login.number)
+}
+
+function login_w_google() {
+  repo.login.google()
+  .then(() => window.location.href = '/')
+  .catch(alert)
 }
 
 </script>
@@ -141,7 +143,7 @@ function login_w_phone() {
               class="btn btn-primary btn-lg btn-block d-flex justify-content-center w-100"
               style="background-color: #dd4b39"
               type="button"
-              :onClick="repo.login.google"
+              :onClick="login_w_google"
             >
               Continue with Google
             </button>

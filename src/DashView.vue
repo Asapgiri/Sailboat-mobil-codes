@@ -132,11 +132,11 @@ export default defineComponent({
         },
         delete_trip_local(key: number): void {
             repo.local.trip.delete(key)
-            .then(x => window.location.href = '/dashboard')
+            .then(() => window.location.href = '/dashboard')
         },
         delete_trip_db(key: string): void {
             repo.db.trip.delete(key)
-            .then(x => window.location.href = '/dashboard')
+            .then(() => window.location.href = '/dashboard')
         },
     },
     data() {

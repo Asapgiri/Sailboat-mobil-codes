@@ -2,6 +2,7 @@
 import { SensorsLogger } from './components/HandleSensors'
 import { config } from './config';
 import { format } from './abstract/formatter'
+import Login from './Login.vue'
 </script>
 
 <script lang="ts">
@@ -141,12 +142,14 @@ export default defineComponent({
 </script>
 
 <template>
-    <div v-if="local_trip_count"><button class="btn btn-info w-100 mb-2" :onclick="SensorsLogger.flush">Sync All</button></div>
+    <div v-if="user && local_trip_count"><button class="btn btn-info w-100 mb-2" :onclick="SensorsLogger.flush">Sync All</button></div>
     <!--
     -->
     <div><button class="btn btn-info w-100 mb-2" :onclick="create">create</button></div>
     
-    <div v-if="!user"><button class="btn btn-warning w-100 p-3 my-5" onclick="window.location.href='/login'">Login</button></div>
+    <div v-if="!user">
+        <Login/>
+    </div>
 
     <div id="logs">
         <div v-for="(trip) in alltrips" class="border my-2">
