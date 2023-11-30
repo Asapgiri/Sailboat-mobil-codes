@@ -112,7 +112,6 @@ async function trip_delete(key: number | string) {
     if (typeof(key) == 'number') {update_progress
         rep = repo.local
     }
-    console.log(key, typeof(key))
 
     return new Promise((resolve, reject) => {
         rep.sensors.drop(key)
@@ -130,7 +129,6 @@ async function load_trip_w_logs(rep: DbFunctions, key: number | string): Promise
         rep.trip.get(key)
         .then(trip => {
             trip_ret = trip
-            console.log(trip)
             rep.sensors.load(trip.logid)
             .then(logs => {
                 logs_ret = logs

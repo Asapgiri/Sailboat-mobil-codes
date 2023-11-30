@@ -159,10 +159,8 @@ async function trip_load_all(): Promise<DocumentSnapshot<DocumentData, DocumentD
 
 async function trip_delete(key: string | number): Promise<any> {
     return new Promise((resolve, reject) => {
-        console.log('search trip: ', key)
         trip_load(key)
         .then(() => {
-            console.log('found trip: ', key)
             return deleteDoc(doc(firestoreDb, DB_TABLE_TRIPS, key.toString()))
         })
         .then(resolve)
@@ -173,10 +171,8 @@ async function trip_delete(key: string | number): Promise<any> {
 
 async function sensors_drop(key: number | string): Promise<number | string> {
     return new Promise((resolve, reject) => {
-        console.log('search trip: ', key)
         trip_load(key)
         .then((trip) => {
-            console.log('found trip: ', key, trip)
             return deleteDoc(doc(firestoreDb, DB_TABLE_LOGS, trip.logid))
         })
         .then(() => resolve(key))

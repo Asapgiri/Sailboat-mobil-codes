@@ -83,21 +83,16 @@ request.onupgradeneeded = (event: any) => {
 async function trip_create(name: string): Promise<number | string> {
     await open_transaction()
     return new Promise((resolve, reject) => {
-        console.log('create trip')
         const tripadd = t_trips.add({
             name: name,
             color: config.view.colors[Math.floor(Math.random() * config.view.colors.length)]
         })
         //tripadd.onerror = reject
         tripadd.onsuccess = (ev: Event) => {
-            console.log('created trip')
             const keys = t_trips.getAllKeys()
             keys.onerror = reject
             keys.onsuccess = (ev: Event) => {
-                console.log('got keys')
                 let res = keys.result as number[]
-                console.log(res)
-                console.log(res[res.length - 1])
                 resolve(res[res.length - 1])
             }
         }
@@ -107,11 +102,9 @@ async function trip_create(name: string): Promise<number | string> {
 async function trip_get(key: number | string): Promise<TripData | LocalTripData> {
     await open_transaction()
     return new Promise((resolve, reject) => {
-        console.log(typeof(key))
         if (typeof(key) == 'string') {
             key = parseInt(key)
         }
-        console.log(typeof(key), key)
         const tripget = t_trips.get(key)
         tripget.onerror = reject
         tripget.onsuccess = (ev: Event) => {
@@ -181,17 +174,13 @@ async function sensor_load(key: number | string): Promise<LogData[]> {
         all_logs.onsuccess = (err: any) => {
             var relevant_logs: LogData[] = []
             all_logs.result.forEach((log: LogData) => {
-                console.log(log.tripindex, key)
                 if (log.tripindex == key) {
                     relevant_logs.push(log)
                 }
             })
             resolve(relevant_logs)
         }
-        all_logs.onerror = (err: any) => {
-            console.log(err)
-            reject()
-        }
+        all_logs.onerror = reject
     })
 }
 

@@ -97,7 +97,6 @@ export default defineComponent({
             this.sync.running = true
             this.sync.progress = 0
             logic.syncall(progress => {
-                console.log(progress)
                 this.sync.progress = Math.ceil((progress.current / progress.all) * 100)
                 this.$forceUpdate()
             })
@@ -143,7 +142,7 @@ export default defineComponent({
             </div>
             <div v-if="trip.data.start"><h5>From {{ format.datetime(trip.data.start) }}<br/>to {{ format.datetime(trip.data.end) }}</h5></div>
             <div v-else>{{ trip.data }}</div>
-            <button class="btn w-100 mt-1 btn-success p-2 mx-0" v-if="!trip.external" @click="sync_trip(trip.key)">Sync</button>
+            <button class="btn w-100 mt-1 btn-success p-2 mx-0" v-if="!trip.external" @click="sync_trip(trip.logid)">Sync</button>
             <!--
                 <button class="btn w-100 mt-1 btn-danger  p-2 mx-0"  @click="trip.external ? delete_trip_db(trip.key) : delete_trip_local(trip.key)">Delete</button>
             -->

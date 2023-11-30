@@ -19,7 +19,6 @@ export default defineComponent({
     methods: {
         search_init() {
             this.search = {}
-            //console.log(window.location.search)
             if ('' != window.location.search) {
                 window.location.search.split('?')[1].split('&').forEach(search => {
                     const ss = search.split('=')
@@ -27,7 +26,6 @@ export default defineComponent({
                 })
             }
 
-            //console.log(this.search)
         },
         load_init() {
             if (!this.search.ext || !this.search.tid) {
@@ -35,7 +33,6 @@ export default defineComponent({
                 return
             }
 
-            console.log(this.search.ext, this.search.tid)
             if (this.is_external()) {
                 this.load_external()
             }
@@ -52,9 +49,7 @@ export default defineComponent({
             })
         },
         load_external() {
-            console.log('load external', this.search)
             const intid = setInterval(() => {
-                //console.log('interval..')
                 if (this.user) {
                     clearInterval(intid)
                     this.load_logs(repo.db)
@@ -88,7 +83,6 @@ export default defineComponent({
                             ])
                         })
 
-                        console.log(gj)
                         this.map.addSource('trip', gj)
 
                         // Create a 'LngLatBounds' with both corners at the first coordinate.
