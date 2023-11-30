@@ -35,28 +35,6 @@ routes.forEach(route =>  {
 </script>
 
 <script lang="ts">
-//import { defineComponent } from 'vue'
-//import { updateCurrentUser } from '@firebase/auth/cordova'
-//
-//export default defineComponent({
-//    data() {
-//        return {
-//            routes: [
-//                { name: 'Dashboard', app: Dashboard, select: () => { console.log('selecting Dashboard'); this.CurrentPage = Dashboard; this.$forceUpdate() } },
-//                { name: 'Meter',     app: Meter,     select: () => { console.log('selecting Meter'); this.CurrentPage = Meter; this.$forceUpdate() }     },
-//                { name: 'Login',     app: Login,     select: () => { console.log('selecting Login'); this.CurrentPage = Login; this.$forceUpdate() }     },
-//                { name: 'Logout',    app: Logout,    select: () => { console.log('selecting Logout'); this.CurrentPage = Logout; this.$forceUpdate() }    }
-//            ],
-//            CurrentPage: Dashboard
-//        }
-//    },
-//    methods: {
-//        update() {
-//            this.$forceUpdate()
-//        }
-//    },
-//    
-//})
 
 
 // create an async function to request a wake lock
@@ -66,17 +44,33 @@ if ("wakeLock" in navigator) {
 }
 
 
+import { defineComponent } from 'vue'
+
+export default defineComponent({
+    methods: {
+        change_collapse() {
+            this.collapse = !this.collapse
+            this.$forceUpdate()
+        }
+    },
+    data() {
+        return {
+            collapse: true
+        }
+    }
+})
+
 </script>
 
 <template>
     <div class="container-fluid m-0 p-0">
         <nav class="navbar navbar-expand-sm navbar-dark bg-dark">
             <a class="navbar-brand mx-2" href="/">Sailboat Multimeter</a>
-            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarsExample03" aria-controls="navbarsExample03" aria-expanded="false" aria-label="Toggle navigation">
+            <button class="navbar-toggler mx-2" type="button"  :onclick="change_collapse">
                 <span class="navbar-toggler-icon"></span>
             </button>
 
-            <div class="collapse navbar-collapse" id="navbarsExample03">
+            <div class="navbar-collapse" :class="collapse ? 'collapse' : ''" id="navbarsExample03">
                 <ul class="navbar-nav mr-auto">
                     <li v-for="route in routes" class="nav-item">
                         <a v-if="route.onbar && ((route.app != Logout && route.app != Login) || ((route.app == Logout && user) || (route.app == Login && !user)))" class="nav-link" :class="route.app == CurrentPage ? 'active' : ''" v-bind:href="route.route">

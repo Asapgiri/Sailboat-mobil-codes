@@ -2,49 +2,57 @@
 import { BLEDevice, type SpokyError, SensorsLogger } from './HandleSensors'
 import { format } from '../abstract/formatter'
 
+var saved_position: GeolocationPosition
+
+navigator.geolocation.watchPosition((position) => {
+    saved_position = position
+},
+(err) => {
+    var newError: SpokyError = {
+        modul: 'GPS',
+        msg: ''
+    }
+
+    switch(err.code) {
+        case err.PERMISSION_DENIED:
+            newError.msg = "User denied the request for Geolocation."
+            break
+        case err.POSITION_UNAVAILABLE:
+            newError.msg = "Location information is unavailable."
+            break
+        case err.TIMEOUT:
+            newError.msg = "The request to get user location timed out."
+            break
+        default:
+            newError.msg = "An unknown error occurred."
+            break
+    }
+
+    BLEDevice.errors.push(newError)
+},
+{
+    enableHighAccuracy: true
+})
+
 function updateLocation() {
-    navigator.geolocation.getCurrentPosition((position) => {
-        const timestamp = document.getElementById('timestamp')
-        const lat = document.getElementById('lat')
-        const lon = document.getElementById('lon')
+    const timestamp = document.getElementById('timestamp')
+    const lat = document.getElementById('lat')
+    const lon = document.getElementById('lon')
 
-        if (lat && lon && timestamp) {
-            timestamp.innerText = format.ms_show(position.timestamp)
-            lat.innerText       = format.gps(position.coords.latitude)
-            lon.innerText       = format.gps(position.coords.longitude)
-        }
-        SensorsLogger.log.gps = {
-            accuracy:           position.coords.accuracy,
-            latitude:           position.coords.latitude,
-            longitude:          position.coords.longitude,
-            speed:              position.coords.speed
-        }
-        SensorsLogger.log.timestamp = position.timestamp
+    if (lat && lon && timestamp) {
+        timestamp.innerText = format.ms_show(saved_position.timestamp)
+        lat.innerText       = format.gps(saved_position.coords.latitude)
+        lon.innerText       = format.gps(saved_position.coords.longitude)
 
-    },
-    (err) => {
-        var newError: SpokyError = {
-            modul: 'GPS',
-            msg: ''
-        }
+    }
+    SensorsLogger.log.gps = {
+        accuracy:           saved_position.coords.accuracy,
+        latitude:           saved_position.coords.latitude,
+        longitude:          saved_position.coords.longitude,
+        speed:              saved_position.coords.speed
+    }
+    SensorsLogger.log.timestamp = saved_position.timestamp
 
-        switch(err.code) {
-            case err.PERMISSION_DENIED:
-                newError.msg = "User denied the request for Geolocation."
-                break
-            case err.POSITION_UNAVAILABLE:
-                newError.msg = "Location information is unavailable."
-                break
-            case err.TIMEOUT:
-                newError.msg = "The request to get user location timed out."
-                break
-            default:
-                newError.msg = "An unknown error occurred."
-                break
-        }
-
-        BLEDevice.errors.push(newError)
-    })
 }
 
 BLEDevice.update.push(updateLocation)

@@ -32,8 +32,6 @@ type WSBLESensorsType = {
 /// Export
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-export type TrPromise = Promise<IDBValidKey | IDBValidKey[] | null>
-
 export type LogData = {
     tripindex: number,
     timestamp: number,
@@ -57,5 +55,29 @@ export type TripData = {
         start: number,
         end: number
     },
+    color: string,
     logid: string
+}
+
+export type LocalTripData = {
+    logid: number,
+    name: string,
+    color: string
+}
+
+export type DbFunctions = {
+    trip: {
+        create: (name: string, ...: any[]) => Promise<number | string>,             // create record        (return key)
+        set:    (key: number | string, name: string) => Promise<number | string>,   // set trip name        (return key)
+        get:    (key: number | string) => Promise<TripData | LocalTripData>,        // get one record       (return trip)
+        getall: () => Promise<TripData[] | LocalTripData[]>,                        // get all records      (return trip[])
+        delete: (key: number | string) => Promise<any>,                             // delete one record    (return success)
+        clean:  () => Promise<any>                                                  // delete all records   (return success)
+    },
+    sensors: {
+        store:  (logs: LogData[]) => Promise<number | string>,          // create record(s)         (return length or id)
+        load:   (key: number | string) => Promise<LogData[]>,           // get records for trip     (return log[])
+        drop:   (key: number | string) => Promise<number | string>,     // delete records for trip  (return key)
+        clean:  () => Promise<any>                                      // delete all records       (return success)
+    }
 }

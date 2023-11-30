@@ -1,8 +1,9 @@
 //import 'web-bluetooth'
 
-import { repo } from '../abstract/repository'
-import { format } from '../abstract/formatter'
-import type { LogData } from '../abstract/sensorlog_models'
+import { repo } from '@/abstract/repository'
+import { format } from '@/abstract/formatter'
+import type { LogData } from '@/abstract/sensorlog_models'
+import { logic } from '@/abstract/dblogic'
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /// Typedefs
@@ -14,14 +15,13 @@ export type SpokyError = {
 }
 
 type BLELogger = {
-    logs:       LogData[],
+    logs:       number,
     log:        LogData,
     store:      Function,
     start:      Function,
     continue:   Function,
     pause:      Function,
     stop:       Function,
-    flush:      Function,
     reset:      Function,
     is_running: boolean,
     is_pauused: boolean,
@@ -90,7 +90,11 @@ var tripkey: number | null = null
 function logger_store(): void {
     if (tripkey) {
         SensorsLogger.log.tripindex = tripkey
-        repo.local.sensors.store(SensorsLogger.log)
+        repo.local.sensors.store([SensorsLogger.log])
+        .then(() => {
+            SensorsLogger.logs++
+        })
+        .catch(alert)
     }
     //SensorsLogger.logs.push(SensorsLogger.log)
     SensorsLogger.log = {
@@ -147,9 +151,13 @@ function logger_start(): void {
     SensorsLogger.time.start = new Date()
     SensorsLogger.is_running = true
 
-    repo.local.trip.create("TRIP: " + SensorsLogger.time.start)
-    .then(tripkeys => {
-        tripkey = tripkeys[tripkeys.length -1]
+    repo.local.trip.create("TRIP: " + SensorsLogger.time.start.toLocaleString())
+    .then(trip => {
+        alert(trip)
+        tripkey = trip as number
+    })
+    .catch((err) => {
+        alert('FAILED: trip init '+SensorsLogger.time.start+' '+err)
     })
 }
 
@@ -200,28 +208,6 @@ function logger_reset(): void {
     SensorsLogger.time.ellapsed = '00:00:00'
 }
 
-function logger_flush(): void {
-    console.log('flush is called')
-
-
-    // TODO: Sand back logs to server...
-    if (!navigator.onLine) {
-        alert('Cannot upload: No Ethernet')
-        return
-    }
-
-    repo.local.open()
-    .then(repo.local.trip.get_all)
-    .then(trips => {
-        trips.forEach(trip => {
-            repo.local.sensors.load(trip.key)
-            .then(logs => {
-                repo.db.trip.store(trip.value, logs)
-            })
-        })
-    })
-}
-
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /// Publics
@@ -270,12 +256,11 @@ export var SensorsLogger: BLELogger = {
     is_running: false,
     is_pauused: false,
     log: { ble: { strue: { s0: false, s1: false, s2: false }, rpm: 0, ws: 0, adc: 0, deg: 0, mpu: { temp: 0, orient: { roll: 0, pitch: 0, yaw: 0 }, acc: { x: 0, y: 0, z: 0 } } }, phone: { compass: 0, orient: { x: 0, y: 0 } }, gps: { accuracy: 0, altitude: 0, altitudeAccuracy: 0, heading: 0, latitude: 0, longitude: 0, speed: 0 }, timestamp: 0 },
-    logs: [],
+    logs: 0,
     store: logger_store,
     start: logger_start,
     pause: logger_pause,
     stop: logger_stop,
-    flush: logger_flush,
     reset: logger_reset,
     continue: logger_continue
 }

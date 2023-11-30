@@ -9,7 +9,10 @@ import { format } from './abstract/formatter'
 import { defineComponent } from 'vue'
 import { useCurrentUser } from "vuefire"
 import { repo, DbInit } from './abstract/repository'
+import type { DbFunctions } from './abstract/sensorlog_models'
 import mapboxgl from "mapbox-gl"
+import { logic } from './abstract/dblogic'
+import { stringify } from 'querystring';
 
 
 export default defineComponent({
@@ -33,12 +36,20 @@ export default defineComponent({
             }
 
             console.log(this.search.ext, this.search.tid)
-            if ("undefined" != this.search.ext && this.search.ext) {
+            if (this.is_external()) {
                 this.load_external()
             }
             else {
                 DbInit.push(this.load_local)
             }
+        },
+        load_logs(rep: DbFunctions) {
+            this.search_init()
+            logic.load(rep, this.search.tid)
+            .then(ret => {
+                this.trip = ret.trip
+                this.logs = ret.logs
+            })
         },
         load_external() {
             console.log('load external', this.search)
@@ -46,33 +57,12 @@ export default defineComponent({
                 //console.log('interval..')
                 if (this.user) {
                     clearInterval(intid)
-                    this.search_init()
-                    //console.log(this.search)
-                    repo.db.trip.load(this.search.tid)
-                    .then(trip => {
-                        this.trip = trip
-                        repo.db.sensors.load(trip.logid)
-                        .then(logs => {
-                            this.logs = logs
-                        })
-                        .catch(alert)
-                    })
+                    this.load_logs(repo.db)
                 }
             }, 50)
         },
         load_local() {
-            this.search_init()
-            console.log('load local', this.search)
-            repo.local.open()
-            .then(() => repo.local.trip.get(parseInt(this.search.tid)))
-            .then(trip => {
-                console.log(trip)
-                this.trip = trip
-                repo.local.sensors.load(trip.key)
-                .then(logs => {
-                    this.logs = logs
-                })
-            })
+            this.load_logs(repo.local)
         },
         onmapload(instance: any) {
             this.map = instance
@@ -133,14 +123,27 @@ export default defineComponent({
                 }
             })
         },
-        delete_trip_local(key: number): void {
-            repo.local.trip.delete(key)
-            .then(() => window.location.href = '/dashboard')
+        is_external() {
+            this.search_init()
+            return 'undefined' != this.search.ext && this.search.ext
         },
-        delete_trip_db(key: string): void {
-            repo.db.trip.delete(key)
-            .then(() => window.location.href = '/dashboard')
+        delete_trip(): void {
+            this.search_init()
+            var key: number | sring
+            if (!this.is_external()) {
+                key = parseInt(this.search.tid)
+            }
+            else {
+                key = this.search.tid
+            }
+            logic.delete(key)
+            .then(() => window.location.href = '/')
         },
+        sync_trip() {
+            this.search_init()
+            logic.sync(parseInt(this.search.tid))
+            .then((newid) => window.location.href = `/dashview?tid=${newid}&ext=true`)
+        }
     },
     data() {
         return {
@@ -148,7 +151,10 @@ export default defineComponent({
             trip: null,
             logs: null,
             map: null,
-            search: {},
+            search: {
+                tid: 'undefined',
+                ext: 'undefined'
+            },
             render: this.search_init() & this.load_init()
         }
     }
@@ -158,7 +164,7 @@ export default defineComponent({
 
 <template>
     <div v-if="logs">
-        <div><h1>{{ trip.name }}</h1></div>
+        <div :style="{backgroundColor: trip.color}"><h1>{{ trip.name }}</h1></div>
         <div v-if="trip.date"><h5>From {{ format.datetime(trip.date.start) }}<br/>to {{ format.datetime(trip.date.end) }}</h5></div>
 
         <MapboxMap :access-token="config.mapbox.token"
@@ -170,6 +176,7 @@ export default defineComponent({
         <!--
         <div v-for="spot in logs">{{ spot }}</div>
         -->
-        <button class="btn w-100 mt-1 btn-danger  p-2 mx-0"  @click="search.ext ? delete_trip_db(search.tid) : delete_trip_local(search.tid)">Delete</button>
+        <button class="btn w-100 mt-1 btn-success p-2 mx-0" v-if="!is_external()" :onclick="sync_trip">Sync</button>
+        <button class="btn w-100 mt-1 btn-danger  p-2 mx-0"  :onclick="delete_trip">Delete</button>
     </div>
 </template>

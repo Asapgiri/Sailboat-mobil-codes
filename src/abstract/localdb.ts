@@ -1,4 +1,5 @@
-import type { LogData, TrPromise } from './sensorlog_models'
+import { config } from '@/config'
+import type { DbFunctions, LocalTripData, LogData, TripData } from './sensorlog_models'
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /// Consts
@@ -79,84 +80,108 @@ request.onupgradeneeded = (event: any) => {
 /// Internals
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-function return_tr_as_promise(t: IDBRequest<IDBValidKey[]> | undefined): TrPromise {
+async function trip_create(name: string): Promise<number | string> {
+    await open_transaction()
     return new Promise((resolve, reject) => {
-        if (undefined == t) {
-            resolve(null)
-            return
-        }
-        t.onsuccess = (err: any) => {
-            resolve(t.result)
-        }
-        t.onerror = (err: any) => {
-            console.log(err)
-            reject()
+        console.log('create trip')
+        const tripadd = t_trips.add({
+            name: name,
+            color: config.view.colors[Math.floor(Math.random() * config.view.colors.length)]
+        })
+        //tripadd.onerror = reject
+        tripadd.onsuccess = (ev: Event) => {
+            console.log('created trip')
+            const keys = t_trips.getAllKeys()
+            keys.onerror = reject
+            keys.onsuccess = (ev: Event) => {
+                console.log('got keys')
+                let res = keys.result as number[]
+                console.log(res)
+                console.log(res[res.length - 1])
+                resolve(res[res.length - 1])
+            }
         }
     })
 }
 
-function trip_create(name: string): TrPromise {
-    open_transaction()
-    if (!t_trips) return new Promise((resolve, reject) => reject())
-
-    t_trips.add(name)
-    const keys = t_trips.getAllKeys()
-
-    return return_tr_as_promise(keys)
-}
-
-async function trip_get(key: number): TrPromise {
+async function trip_get(key: number | string): Promise<TripData | LocalTripData> {
     await open_transaction()
-    return return_tr_as_promise(t_trips.get(key))
+    return new Promise((resolve, reject) => {
+        console.log(typeof(key))
+        if (typeof(key) == 'string') {
+            key = parseInt(key)
+        }
+        console.log(typeof(key), key)
+        const tripget = t_trips.get(key)
+        tripget.onerror = reject
+        tripget.onsuccess = (ev: Event) => {
+            var trip: LocalTripData = { name: tripget.result.name, logid: key as number, color: tripget.result.color }
+            resolve(trip)
+        }
+    })
 }
 
-async function trip_get_all() {
+async function trip_get_all(): Promise<TripData[] | LocalTripData[]> {
     await open_transaction()
     var request = t_trips.getAllKeys()
-    var ret: {key: any, value: any}[] = []
+    var ret: LocalTripData[] = []
 
     return new Promise((resolve, reject) => {
         request.onsuccess = (event: any) => {
-            let keys = request.result
+            let keys = request.result as number[]
             request = t_trips.getAll()
             request.onsuccess = (event: any) => {
-                let values = request.result
+                let values = request.result as LocalTripData[]
                 let i = 0
-                keys.forEach(key => ret.push({key: key, value: values[i++]}))
+                keys.forEach(key => {
+                    ret.push({logid: key, name: values[i].name, color: values[i].color})
+                    i++
+                })
                 resolve(ret)
             }
-            request.onerror = (err: any) => {
-                console.log(err)
-                reject()
-            }
+            request.onerror = reject
         }
-        request.onerror = (err: any) => {
-            console.log(err)
-            reject()
+        request.onerror = reject
+    })
+}
+
+async function trip_delete(key: number | string) {
+    await open_transaction()
+    return new Promise((resolve, reject) => {
+        const tripdelete = t_trips.delete(key)
+        tripdelete.onerror = reject
+        tripdelete.onsuccess = (ev: Event) => {
+            resolve(tripdelete.result)
         }
     })
 }
 
-async function trip_delete(key: number) {
+async function trip_clean() {
     await open_transaction()
-    t_trips.delete(key)
+    t_trips.clear()
 }
 
 
 
-async function sensor_store(log: LogData) {
+async function sensor_store(logs: LogData[]): Promise<number | string> {
     await open_transaction()
-    t_logs.add(log)
+    for (let i = 0; i < logs.length; i++) {
+        await t_logs.add(logs[i])
+    }
+    return new Promise((resolve, reject) => {
+        resolve(logs.length)
+    })
 }
 
-async function sensor_load(key: number): TrPromise {
+async function sensor_load(key: number | string): Promise<LogData[]> {
     await open_transaction()
     const all_logs = t_logs.getAll()
 
     return new Promise((resolve, reject) => {
         all_logs.onsuccess = (err: any) => {
-            const relevant_logs = []
-            all_logs.result.forEach(log => {
+            var relevant_logs: LogData[] = []
+            all_logs.result.forEach((log: LogData) => {
+                console.log(log.tripindex, key)
                 if (log.tripindex == key) {
                     relevant_logs.push(log)
                 }
@@ -170,12 +195,25 @@ async function sensor_load(key: number): TrPromise {
     })
 }
 
-async function local_sensors_clean(key: number) {
+async function local_sensors_delete(key: number | string): Promise<number | string> {
     await open_transaction()
-    t_logs.delete(key)
+    return new Promise((resolve, reject) => {
+        const logs = t_logs.openCursor()
+        logs.onerror = reject
+        logs.onsuccess = (err: any) => {
+            const cursor = logs.result
+            if (cursor ) {
+                if (cursor.value.tripindex == key) {
+                    cursor.delete()
+                }
+                cursor.continue()
+            }
+            resolve(key)
+        }
+    })
 }
 
-async function local_sensors_clean_all() {
+async function local_sensors_clean() {
     await open_transaction()
     t_logs.clear()
 }
@@ -208,20 +246,30 @@ function device_clear(): void {
 /// Export
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-export const localdb = {
+type LocalDbType = DbFunctions & {
+    open: Function,
+    device: {
+        load:  () => Device | null,
+        store: (dev: Device) => void,
+        clear: () => void
+    }
+}
+
+export const localdb: LocalDbType = {
     open: open_transaction,
     trip: {
         create: trip_create,
-        get: trip_get,
-        get_all: trip_get_all,
-        delete: trip_delete
+        set:    null,
+        get:    trip_get,
+        getall: trip_get_all,
+        delete: trip_delete,
+        clean:  trip_clean
     },
     sensors: {
-        store:          sensor_store,
-        load:           sensor_load,
-        //load_for_trips: trip_get_all,
-        clean:          local_sensors_clean,
-        clean_all:      local_sensors_clean_all
+        store:  sensor_store,
+        load:   sensor_load,
+        drop:   local_sensors_delete,
+        clean:  local_sensors_clean
     },
     device: {
         load:  device_load,

@@ -4,6 +4,7 @@ import { SensorsLogger } from './HandleSensors'
 import { format } from '../abstract/formatter'
 import { config } from '../config'
 
+
 </script>
 
 <script lang="ts">
@@ -17,6 +18,10 @@ export default defineComponent({
                 // should be reconnect etc.. so reset is not always the best option
                 SensorsLogger.reset()
             })
+        },
+        debug_connect() {
+            BLEDevice.connected = true
+            this.$forceUpdate()
         }
     }
 })
@@ -24,13 +29,14 @@ export default defineComponent({
 
 <template>
     <div class="col-6">
-        Stored log count: {{ SensorsLogger.logs.length }}
+        Stored log count: {{ SensorsLogger.logs }}
     </div>
     <div class="col-6">
         Ellapsed: <span v-bind:class="SensorsLogger.is_running ? SensorsLogger.is_pauused ? 'text-danger' : 'text-success' : ''">{{ SensorsLogger.time.ellapsed }}</span>
     </div>
-        
+
     <div v-if="!BLEDevice.connected">
+        <button class="btn btn-warning py-3 w-100 mb-2" :onclick="debug_connect">Debug connect</button>
         <button class="btn btn-primary py-3 w-100 mb-2" :onclick="connect">Connect</button>
     </div>
     <div v-else>

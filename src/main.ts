@@ -5,10 +5,11 @@ import App from './App.vue'
 
 import { repo } from './abstract/repository'
 
-import 'bootstrap/dist/css/bootstrap.css'
-import 'bootstrap-vue/dist/bootstrap-vue.css'
+import 'bootstrap/dist/css/bootstrap.min.css'
 import 'bootstrap/dist/js/bootstrap.min.js'
-import '@popperjs/core/dist/cjs/popper.js'
+import 'bootstrap/js/index.esm.js'
+import '@popperjs/core/dist/umd/popper.min.js'
+
 
 export const app = createApp(App)
 

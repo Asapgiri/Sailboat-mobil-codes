@@ -3,7 +3,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
 import { config } from '../config'
-import type { LogData, TripData } from '../abstract/sensorlog_models'
+import type { LogData, DbFunctions, TripData } from '../abstract/sensorlog_models'
 import type { App, Ref } from 'vue'
 import type { _Nullable } from 'vuefire'
 import type { User } from 'firebase/auth'
@@ -66,7 +66,7 @@ function google_login() {
     return signInWithRedirect(auth, googleAuthProvider)
 }
 
-function sensors_store(logs: LogData[]): Promise<string> {
+function sensors_store(logs: LogData[]): Promise<number | string> {
     return new Promise((resolve, reject) => {
         if (null == user.value || undefined == user.value) {
             return reject(false)
@@ -78,13 +78,13 @@ function sensors_store(logs: LogData[]): Promise<string> {
     })
 }
 
-function sensors_load(logid: string): Promise<LogData[]> {
+function sensors_load(logid: number | string): Promise<LogData[]> {
     return new Promise((resolve, reject) => {
         if (null == user.value || undefined == user.value) {
             return reject(false)
         }
 
-        const docref = doc(firestoreDb, DB_TABLE_LOGS, logid)
+        const docref = doc(firestoreDb, DB_TABLE_LOGS, logid.toString())
         getDoc(docref)
         .then(snapshot => {
             if (!snapshot.exists()) {
@@ -97,7 +97,7 @@ function sensors_load(logid: string): Promise<LogData[]> {
 }
 
 
-async function trip_store(tripname: string, logs: LogData[]): Promise<string> {
+async function trip_store(tripname: string, tripcolor: string, logs: LogData[]): Promise<string> {
     return new Promise((resolve, reject) => {
         if (null == user.value || undefined == user.value) {
             return reject(false)
@@ -108,20 +108,16 @@ async function trip_store(tripname: string, logs: LogData[]): Promise<string> {
         }
         sensors_store(logs)
         .then(logid => {
-            const data = {
+            const data: TripData = {
                 user: user.value.uid,
                 name: tripname,
                 date: {
                     start: logs[0].timestamp,
                     end: logs[logs.length - 1].timestamp
                 },
-                logid: logid
+                color: tripcolor,
+                logid: logid.toString()
             }
-            //alert(user.value.uid)
-            //alert(tripname)
-            //alert(logid)
-            //alert(logs[0].timestamp)
-            //alert(logs[logs.length - 1].timestamp)
             addDoc(collection(firestoreDb, DB_TABLE_TRIPS), data)
             .then(obj => resolve(obj.id))
             .catch(err => alert('trip1: '+err))
@@ -130,13 +126,13 @@ async function trip_store(tripname: string, logs: LogData[]): Promise<string> {
     })
 }
 
-async function trip_load(key: string): Promise<any> {
+async function trip_load(key: string | number): Promise<any> {
     return new Promise((resolve, reject) => {
         if (null == user.value || undefined == user.value) {
             return reject(false)
         }
 
-        const docref = doc(firestoreDb, DB_TABLE_TRIPS, key)
+        const docref = doc(firestoreDb, DB_TABLE_TRIPS, key.toString())
         getDoc(docref)
         .then(snapshot => {
             if (!snapshot.exists() || user.value.uid != snapshot.data().user) {
@@ -161,18 +157,33 @@ async function trip_load_all(): Promise<DocumentSnapshot<DocumentData, DocumentD
     })
 }
 
-async function trip_delete(key: string): Promise<any> {
+async function trip_delete(key: string | number): Promise<any> {
     return new Promise((resolve, reject) => {
         console.log('search trip: ', key)
         trip_load(key)
         .then(() => {
             console.log('found trip: ', key)
-            return deleteDoc(doc(firestoreDb, DB_TABLE_TRIPS, key))
+            return deleteDoc(doc(firestoreDb, DB_TABLE_TRIPS, key.toString()))
         })
         .then(resolve)
         .catch(reject)
     })
 }
+
+
+async function sensors_drop(key: number | string): Promise<number | string> {
+    return new Promise((resolve, reject) => {
+        console.log('search trip: ', key)
+        trip_load(key)
+        .then((trip) => {
+            console.log('found trip: ', key, trip)
+            return deleteDoc(doc(firestoreDb, DB_TABLE_LOGS, trip.logid))
+        })
+        .then(() => resolve(key))
+        .catch(reject)
+    })
+}
+
 
 function dummy(a: any = null, b: any = null, c: any = null, d: any = null,
                e: any = null, f: any = null, g: any = null, h: any = null,): void { }
@@ -182,7 +193,16 @@ function dummy(a: any = null, b: any = null, c: any = null, d: any = null,
 /// Export
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-export const extdb = {
+type ExtDbType = {
+    init: Function,
+    login: {
+        phone: (phonenumber: string) => void,
+        google: Function
+    },
+    db: DbFunctions
+}
+
+export const extdb: ExtDbType = {
     init: init,
     login: {
         phone:  phone_login,
@@ -190,14 +210,18 @@ export const extdb = {
     },
     db: {
         trip: {
-            store:   trip_store,
-            load:    trip_load,
-            loadall: trip_load_all,
-            delete:  trip_delete
+            create:     trip_store,
+            //set:        dummy,
+            get:        trip_load,
+            getall:     trip_load_all,
+            delete:     trip_delete,
+            //clean:      dummy
         },
         sensors: {
+            store:  sensors_store,
             load:   sensors_load,
-            delete: dummy
+            drop:   sensors_drop,
+            //clean:  dummy
         }
     }
 }
