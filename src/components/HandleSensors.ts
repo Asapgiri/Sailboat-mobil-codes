@@ -26,7 +26,7 @@ type BLELogger = {
     is_running: boolean,
     is_pauused: boolean,
     time: {
-        start: Date,
+        start: number,
         ellapsed: string
     }
 }
@@ -68,8 +68,8 @@ var can_update: boolean
 var dec = new TextDecoder("utf-8");
 var enc = new TextEncoder();
 
-var startTime: Date
-var endTime: Date
+var startTime: number
+var endTime: number
 var nextTime: Date = new Date()
 var minms = 1000
 var maxms = 0
@@ -125,12 +125,9 @@ function logger_store(): void {
         },
         phone: {
             compass: 0,
-            orient: { x: 0, y: 0 }
+            orient: [ 0, 0, 0, 0, 0, 0, 0, 0, 0]
         }, gps: {
             accuracy: 0,
-            altitude: 0,
-            altitudeAccuracy: 0,
-            heading: 0,
             latitude: 0,
             longitude: 0,
             speed: 0
@@ -138,7 +135,7 @@ function logger_store(): void {
         timestamp: 0
     }
 
-    var ms = (new Date()) - SensorsLogger.time.start
+    var ms = (new Date().getTime()) - SensorsLogger.time.start
     SensorsLogger.time.ellapsed = format.timer(ms)
 }
 
@@ -148,12 +145,11 @@ function logger_start(): void {
         return
     }
 
-    SensorsLogger.time.start = new Date()
+    SensorsLogger.time.start = new Date().getTime()
     SensorsLogger.is_running = true
 
     repo.local.trip.create("TRIP: " + SensorsLogger.time.start.toLocaleString())
     .then(trip => {
-        alert(trip)
         tripkey = trip as number
     })
     .catch((err) => {
@@ -171,7 +167,7 @@ function logger_stop(): void {
 
     // store data locally
     //repo.local.sensors.store(tripkey, [SensorsLogger.logs])
-    SensorsLogger.logs = []
+    SensorsLogger.logs = 0
 }
 
 function logger_pause(): void {
@@ -203,8 +199,8 @@ function logger_continue(): void {
 function logger_reset(): void {
     SensorsLogger.is_running = false
     SensorsLogger.is_pauused = false
-    SensorsLogger.log = { ble: { strue: { s0: false, s1: false, s2: false }, rpm: 0, ws: 0, adc: 0, deg: 0, mpu: { temp: 0, orient: { roll: 0, pitch: 0, yaw: 0 }, acc: { x: 0, y: 0, z: 0 } } }, phone: { compass: 0, orient: { x: 0, y: 0 } }, gps: { accuracy: 0, altitude: 0, altitudeAccuracy: 0, heading: 0, latitude: 0, longitude: 0, speed: 0 }, timestamp: 0 }
-    SensorsLogger.logs = []
+    SensorsLogger.log = { ble: { strue: { s0: false, s1: false, s2: false }, rpm: 0, ws: 0, adc: 0, deg: 0, mpu: { temp: 0, orient: { roll: 0, pitch: 0, yaw: 0 }, acc: { x: 0, y: 0, z: 0 } } }, phone: { compass: 0, orient: [ 0, 0, 0, 0, 0, 0, 0, 0, 0 ] }, gps: { accuracy: 0, latitude: 0, longitude: 0, speed: 0 }, timestamp: 0, tripindex: 0 }
+    SensorsLogger.logs = 0
     SensorsLogger.time.ellapsed = '00:00:00'
 }
 
@@ -250,7 +246,7 @@ export const BLEDevice: WSBLEDeviceType = {
 
 export var SensorsLogger: BLELogger = {
     time: {
-        start: new Date(),
+        start: new Date().getTime(),
         ellapsed: '00:00:00'
     },
     is_running: false,
@@ -268,11 +264,11 @@ export var SensorsLogger: BLELogger = {
 var list10: number[] = []
 
 function start() {
-    startTime = new Date()
+    startTime = new Date().getTime()
 };
 
 function end() {
-    endTime = new Date()
+    endTime = new Date().getTime()
     list10.push(endTime - startTime)
     if (list10.length > 10) {
         list10.shift()

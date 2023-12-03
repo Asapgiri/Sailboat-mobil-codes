@@ -6,11 +6,14 @@ import Login from './Login.vue'
 </script>
 
 <script lang="ts">
+import type { Ref } from 'vue'
 import { defineComponent } from 'vue'
 import { useCurrentUser } from "vuefire";
 import { repo, DbInit } from './abstract/repository'
 import { logic } from './abstract/dblogic'
 import type { Progress } from '@/abstract/dblogic'
+import type { User } from '@firebase/auth';
+import type { ETripData, LocalTripData, TripData } from './abstract/sensorlog_models';
 
 export default defineComponent({
     methods: {
@@ -37,17 +40,21 @@ export default defineComponent({
         load_local_logs() {
             repo.local.open()
             .then(repo.local.trip.getall)
-            .then(trips => {
-                this.alltrips = trips
+            .then((trips: LocalTripData[]) => {
                 this.local_trip_count = trips.length
-                this.alltrips.forEach(trip => {
-                    trip.data = []
+                trips.forEach(trip => {
                     repo.local.sensors.load(trip.logid)
                     .then(logs => {
-                        trip.data = {
-                            start: logs[0].timestamp,
-                            end: logs[logs.length - 1].timestamp
-                        }
+                        this.alltrips.push({
+                            external: false,
+                            logid: trip.logid,
+                            name: trip.name,
+                            color: trip.color,
+                            data: {
+                                start: logs[0].timestamp,
+                                end: logs[logs.length - 1].timestamp
+                            }
+                        })
                         //alert(logs)
                         this.sort_alltrips()
                         this.$forceUpdate()
@@ -58,15 +65,15 @@ export default defineComponent({
         load_external_logs() {
             if (this.user) {
                 repo.db.trip.getall()
-                .then(tripssnapshot => {
-                    tripssnapshot.forEach(trip => {
-                        const tripdata = trip.data()
+                .then(etrips => {
+                    etrips.forEach(trip => {
+                        const t = trip as ETripData
                         this.alltrips.push({
                             external: true,
-                            logid: trip.id,
-                            name: tripdata.name,
-                            color: tripdata.color,
-                            data: tripdata.date
+                            logid: t.key,
+                            name: t.data.name,
+                            color: t.data.color,
+                            data: t.data.date
                         })
                     })
                     this.sort_alltrips()
@@ -75,6 +82,7 @@ export default defineComponent({
             }
         },
         refresh_all_logs() {
+            this.alltrips = []
             this.load_local_logs()
             this.load_external_logs()
         },
@@ -82,7 +90,7 @@ export default defineComponent({
             logic.dummy.create()
             .then(x => {console.log(x); this.refresh_all_logs()})
         },
-        open_trip(trip: string, external: boolean) {
+        open_trip(trip: string | number, external: boolean) {
             window.location.href = `/dashview?tid=${trip}&ext=${external}`
         },
         sync_trip(key: number) {
@@ -117,6 +125,24 @@ export default defineComponent({
             local_trip_count: 0,
             user: useCurrentUser(),
             render: DbInit.push(this.refresh_all_logs) && this.load_external_first()
+        } as {
+            sync: {
+                running: boolean,
+                progress: number
+            },
+            alltrips: {
+                external: boolean,
+                logid: number | string,
+                name: string,
+                color: string,
+                data: {
+                    start: number,
+                    end: number
+                }
+            }[],
+            local_trip_count: number,
+            user: any,
+            render: any
         }
     }
 })
@@ -142,7 +168,7 @@ export default defineComponent({
             </div>
             <div v-if="trip.data.start"><h5>From {{ format.datetime(trip.data.start) }}<br/>to {{ format.datetime(trip.data.end) }}</h5></div>
             <div v-else>{{ trip.data }}</div>
-            <button class="btn w-100 mt-1 btn-success p-2 mx-0" v-if="!trip.external" @click="sync_trip(trip.logid)">Sync</button>
+            <button class="btn w-100 mt-1 btn-success p-2 mx-0" v-if="!trip.external" @click="sync_trip(trip.logid as number)">Sync</button>
             <!--
                 <button class="btn w-100 mt-1 btn-danger  p-2 mx-0"  @click="trip.external ? delete_trip_db(trip.key) : delete_trip_local(trip.key)">Delete</button>
             -->

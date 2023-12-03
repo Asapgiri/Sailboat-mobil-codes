@@ -75,8 +75,10 @@ async function sync_trip(key: number): Promise<string> {
                 repo.db.trip.create(trip.name, trip.color, logs)
                 .then((newid) => {
                     repo.local.trip.delete(key)
-                    repo.local.sensors.drop(key)
-                    resolve(newid.toString())
+                    .then(() => {
+                        repo.local.sensors.drop(key)
+                        .then(() => resolve(newid.toString()))
+                    })
                 })
             })
         })
@@ -109,7 +111,7 @@ async function sync_all_trips(update_progress: (progress: Progress) => void): Pr
 
 async function trip_delete(key: number | string) {
     var rep = repo.db
-    if (typeof(key) == 'number') {update_progress
+    if (typeof(key) == 'number') {
         rep = repo.local
     }
 
@@ -125,12 +127,16 @@ async function load_trip_w_logs(rep: DbFunctions, key: number | string): Promise
     var trip_ret: TripData | LocalTripData
     var logs_ret: LogData[]
 
+    console.log(rep, key)
+
     return new Promise((resolve, reject) => {
         rep.trip.get(key)
         .then(trip => {
             trip_ret = trip
+            console.log(trip)
             rep.sensors.load(trip.logid)
             .then(logs => {
+                console.log(logs)
                 logs_ret = logs
                 resolve({trip: trip_ret, logs: logs_ret})
             })

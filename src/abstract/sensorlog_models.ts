@@ -59,6 +59,11 @@ export type TripData = {
     logid: string
 }
 
+export type ETripData = {
+    key: string,
+    data: TripData
+}
+
 export type LocalTripData = {
     logid: number,
     name: string,
@@ -67,12 +72,12 @@ export type LocalTripData = {
 
 export type DbFunctions = {
     trip: {
-        create: (name: string, ...: any[]) => Promise<number | string>,             // create record        (return key)
-        set:    (key: number | string, name: string) => Promise<number | string>,   // set trip name        (return key)
-        get:    (key: number | string) => Promise<TripData | LocalTripData>,        // get one record       (return trip)
-        getall: () => Promise<TripData[] | LocalTripData[]>,                        // get all records      (return trip[])
-        delete: (key: number | string) => Promise<any>,                             // delete one record    (return success)
-        clean:  () => Promise<any>                                                  // delete all records   (return success)
+        create: (name: string, color?: string, logs?: LogData[]) => Promise<number | string>,   // create record        (return key)
+        set:    (key: number | string, name: string) => Promise<number | string>,               // set trip name        (return key)
+        get:    (key: number | string) => Promise<TripData | LocalTripData>,                    // get one record       (return trip)
+        getall: () => Promise<ETripData[] | LocalTripData[]>,                                   // get all records      (return trip[])
+        delete: (key: number | string) => Promise<any>,                                         // delete one record    (return success)
+        clean:  () => Promise<any>                                                              // delete all records   (return success)
     },
     sensors: {
         store:  (logs: LogData[]) => Promise<number | string>,          // create record(s)         (return length or id)

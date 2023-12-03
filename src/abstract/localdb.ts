@@ -99,6 +99,13 @@ async function trip_create(name: string): Promise<number | string> {
     })
 }
 
+async function trip_set(key: number | string, name: string): Promise<number | string> {
+    // TODO: Imlement
+    return new Promise((rs, rj) => {
+        rj('Not implemented')
+    })
+}
+
 async function trip_get(key: number | string): Promise<TripData | LocalTripData> {
     await open_transaction()
     return new Promise((resolve, reject) => {
@@ -116,13 +123,13 @@ async function trip_get(key: number | string): Promise<TripData | LocalTripData>
 
 async function trip_get_all(): Promise<TripData[] | LocalTripData[]> {
     await open_transaction()
-    var request = t_trips.getAllKeys()
-    var ret: LocalTripData[] = []
+    const reqKeys = t_trips.getAllKeys()
+    const ret: LocalTripData[] = []
 
     return new Promise((resolve, reject) => {
-        request.onsuccess = (event: any) => {
-            let keys = request.result as number[]
-            request = t_trips.getAll()
+        reqKeys.onsuccess = (event: any) => {
+            let keys = reqKeys.result as number[]
+            const request = t_trips.getAll()
             request.onsuccess = (event: any) => {
                 let values = request.result as LocalTripData[]
                 let i = 0
@@ -134,7 +141,7 @@ async function trip_get_all(): Promise<TripData[] | LocalTripData[]> {
             }
             request.onerror = reject
         }
-        request.onerror = reject
+        reqKeys.onerror = reject
     })
 }
 
@@ -216,7 +223,7 @@ function device_load(): Device | null {
         return null
     }
 
-    return JSON.parse(localStorage.getItem(DEVICE_STORE_NAME))
+    return JSON.parse(localStorage.getItem(DEVICE_STORE_NAME) as string)
 }
 
 function device_store(dev: Device): void {
@@ -248,7 +255,7 @@ export const localdb: LocalDbType = {
     open: open_transaction,
     trip: {
         create: trip_create,
-        set:    null,
+        set:    trip_set,
         get:    trip_get,
         getall: trip_get_all,
         delete: trip_delete,

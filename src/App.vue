@@ -4,6 +4,7 @@ import Dashboard from './Dashboard.vue'
 import Login from './Login.vue'
 import Logout from './Logout.vue'
 import DashView from './DashView.vue'
+import NotFound404 from './NotFound404.vue'
 import { useCurrentUser } from 'vuefire'
 
 const user = useCurrentUser()
@@ -17,17 +18,17 @@ loggedin()
 
 // routing
 const routes = [
-    { name: 'Dashboard', app: Dashboard, route: '/dashboard', onbar: true },
-    { name: 'Meter',     app: Meter,     route: '/meter',     onbar: true },
-    { name: 'Login',     app: Login,     route: '/login',     onbar: true },
-    { name: 'Logout',    app: Logout,    route: '/logout',    onbar: true },
-    { name: 'DashView',  app: DashView,  route: '/dashview',  onbar: false }
+    { name: 'Dashboard', app: Dashboard, route: ['/dashboard','/'], onbar: true },
+    { name: 'DashView',  app: DashView,  route: ['/dashview'],      onbar: false }
+    { name: 'Meter',     app: Meter,     route: ['/meter'],         onbar: true },
+    { name: 'Login',     app: Login,     route: ['/login'],         onbar: true },
+    { name: 'Logout',    app: Logout,    route: ['/logout'],        onbar: true },
 ]
 
-var CurrentPage = Dashboard
+var CurrentPage: any = NotFound404
 
 routes.forEach(route =>  {
-    if (route.route == window.location.pathname) {
+    if (route.route.includes(window.location.pathname)) {
         CurrentPage = route.app
     }
 })
@@ -73,7 +74,7 @@ export default defineComponent({
             <div class="navbar-collapse" :class="collapse ? 'collapse' : ''" id="navbarsExample03">
                 <ul class="navbar-nav mr-auto">
                     <li v-for="route in routes" class="nav-item">
-                        <a v-if="route.onbar && ((route.app != Logout && route.app != Login) || ((route.app == Logout && user) || (route.app == Login && !user)))" class="nav-link" :class="route.app == CurrentPage ? 'active' : ''" v-bind:href="route.route">
+                        <a v-if="route.onbar && ((route.app != Logout && route.app != Login) || ((route.app == Logout && user) || (route.app == Login && !user)))" class="nav-link" :class="route.app == CurrentPage ? 'active' : ''" v-bind:href="route.route[0]">
                             {{ route.name }}
                         </a>
                     </li>

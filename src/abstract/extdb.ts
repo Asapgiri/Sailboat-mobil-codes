@@ -3,9 +3,9 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
 import { config } from '../config'
-import type { LogData, DbFunctions, TripData } from '../abstract/sensorlog_models'
+import type { LogData, DbFunctions, TripData, LocalTripData, ETripData } from '../abstract/sensorlog_models'
 import type { App, Ref } from 'vue'
-import type { _Nullable } from 'vuefire'
+//import type { _Nullable } from 'vuefire'
 import type { User } from 'firebase/auth'
 import { VueFire, VueFireAuth, VueFireAppCheck } from 'vuefire'
 import { initializeApp } from 'firebase/app'
@@ -31,7 +31,7 @@ const googleAuthProvider    = new GoogleAuthProvider();
 //const phoneAuthProvider   = new PhoneAuthProvider(auth);
 //const applicationVerifier = new RecaptchaVerifier(auth, 'recapcha-container')
 const firestoreDb           = getFirestore(firebaseApp)
-var user: Ref<_Nullable<User>>
+var user: any
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -87,19 +87,21 @@ function sensors_load(logid: number | string): Promise<LogData[]> {
         const docref = doc(firestoreDb, DB_TABLE_LOGS, logid.toString())
         getDoc(docref)
         .then(snapshot => {
-            if (!snapshot.exists()) {
+            if (snapshot.exists()) {
+                resolve(snapshot.data().logs)
+            }
+            else {
                 reject("Log does not exists!")
             }
-            resolve(snapshot.data().logs)
         })
         .catch(reject)
     })
 }
 
 
-async function trip_store(tripname: string, tripcolor: string, logs: LogData[]): Promise<string> {
+async function trip_store(tripname: string, tripcolor?: string, logs?: LogData[]): Promise<string | number> {
     return new Promise((resolve, reject) => {
-        if (null == user.value || undefined == user.value) {
+        if (null == user.value || undefined == user.value || !tripcolor || !logs) {
             return reject(false)
         }
 
@@ -109,7 +111,7 @@ async function trip_store(tripname: string, tripcolor: string, logs: LogData[]):
         sensors_store(logs)
         .then(logid => {
             const data: TripData = {
-                user: user.value.uid,
+                user: user.value!.uid,
                 name: tripname,
                 date: {
                     start: logs[0].timestamp,
@@ -144,7 +146,7 @@ async function trip_load(key: string | number): Promise<any> {
     })
 }
 
-async function trip_load_all(): Promise<DocumentSnapshot<DocumentData, DocumentData>> {
+async function trip_load_all(): Promise<LocalTripData[] | ETripData[]> {
     return new Promise((resolve, reject) => {
         if (null == user.value || undefined == user.value) {
             return reject(false)
@@ -152,7 +154,16 @@ async function trip_load_all(): Promise<DocumentSnapshot<DocumentData, DocumentD
 
         const q = query(collection(firestoreDb, DB_TABLE_TRIPS), where("user", "==", user.value.uid))
         getDocs(q)
-        .then(doc => resolve(doc))
+        .then(doc => {
+            const trips: ETripData[] = []
+            doc.forEach(trip => {
+                trips.push({
+                    key: trip.id,
+                    data: trip.data() as TripData
+                })
+            })
+            resolve(trips)
+        })
         .catch(reject)
     })
 }
@@ -181,8 +192,24 @@ async function sensors_drop(key: number | string): Promise<number | string> {
 }
 
 
-function dummy(a: any = null, b: any = null, c: any = null, d: any = null,
-               e: any = null, f: any = null, g: any = null, h: any = null,): void { }
+async function trip_set(key: number | string, name: string): Promise<number | string> {
+    // TODO: Imlement
+    return new Promise((rs, rj) => {
+        rj('Not implemented')
+    })
+}
+async function trip_clean(): Promise<any> {
+    // TODO: Imlement
+    return new Promise((rs, rj) => {
+        rj('Not implemented')
+    })
+}
+async function sensors_clean(): Promise<any> {
+    // TODO: Imlement
+    return new Promise((rs, rj) => {
+        rj('Not implemented')
+    })
+}
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -207,17 +234,17 @@ export const extdb: ExtDbType = {
     db: {
         trip: {
             create:     trip_store,
-            //set:        dummy,
+            set:        trip_set,
             get:        trip_load,
             getall:     trip_load_all,
             delete:     trip_delete,
-            //clean:      dummy
+            clean:      trip_clean
         },
         sensors: {
             store:  sensors_store,
             load:   sensors_load,
             drop:   sensors_drop,
-            //clean:  dummy
+            clean:  sensors_clean
         }
     }
 }
